@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "list.h"
+
+#define MAX_PARAMS 16
 
 #define getBool(val) (*(int8_t*)&((val)->value))
 #define getByte(val) (*(int8_t*)&((val)->value))
@@ -15,6 +18,8 @@
 #define getString(val) (*(char**)&((val)->value))
 
 #define asVal(val) (*(int64_t*)&(val))
+
+typedef struct _linkedList LinkedList;
 
 typedef enum _objectType {
     OBJECT_TYPE_UNDEFINED,
@@ -29,6 +34,7 @@ typedef enum _objectType {
     OBJECT_TYPE_FLOAT,
     OBJECT_TYPE_DOUBLE,
     OBJECT_TYPE_STR,
+    OBJECT_TYPE_FUNCTION
 } ObjectType;
 
 typedef struct _symbolData {
@@ -37,15 +43,17 @@ typedef struct _symbolData {
     int64_t addr;
     int32_t lineno;
     char* func_sig;
+    uint8_t func_var;
+    ObjectType returnType;
+    ObjectType paramTypes[MAX_PARAMS]; 
+    int32_t paramCount; 
 } SymbolData;
 
 typedef struct _object {
     ObjectType type;
-    uint32_t array;
     uint64_t value;
-    uint8_t flag;
     SymbolData* symbol;
-    LinkedList* arraySubscript;
+    struct list_head list;
 } Object;
 
 extern int yylineno;

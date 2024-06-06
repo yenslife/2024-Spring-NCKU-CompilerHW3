@@ -10,66 +10,49 @@
 extern FILE* yyout;
 extern FILE* yyin;
 extern bool compileError;
-extern int scopeLevel;
+// extern int scopeLevel;
 int yyparse();
 int yylex();
 int yylex_destroy();
+extern int scopeLevel;
+
+#define VAR_FLAG_DEFAULT 0
+#define VAR_FLAG_ARRAY 0b00000001
+#define VAR_FLAG_POINTER 0b00000010
 
 void pushScope();
 void dumpScope();
 
-Object* findVariable(char* variableName);
-bool initVariable(ObjectType variableType, LinkedList* arraySubscripts, char* variableName);
-Object* createVariable(ObjectType variableType, LinkedList* arraySubscripts, char* variableName, Object* value);
+// stack
+extern struct list_head *scopeList[1024]; /* scope list */
 
-void functionLocalsBegin();
-void functionParmPush(ObjectType variableType, LinkedList* arraySubscripts, char* variableName);
-void functionBegin(ObjectType returnType, LinkedList* arraySubscripts, char* funcName);
-bool functionEnd(ObjectType returnType);
+void pushFunParm(ObjectType variableType, char* variableName, int parmFlag);
+void pushVariable(ObjectType variableType, char* variableName, int variableFlag, Object *variableValue);
+void pushVariableList(ObjectType varType);
+void pushArrayVariable(ObjectType variableType, char* variableName, int variableFlag);
+void incrementArrayElement();
+void nonInitArray();
+void createFunction(ObjectType variableType, char* funcName);
+void pushFunInParm(Object* b);
 
-bool returnObject(Object* obj);
-bool breakLoop();
-
-void functionArgsBegin();
-void functionArgPush(Object* obj);
-void functionCall(char* funcName, Object* out);
-
-bool stdoutPrint(Object* obj);
-
-// Expressions
+Object* findVariable(char* variableName, ObjectType variableType);
+Object* createVariable(ObjectType variableType, char* variableName, int variableFlag);
 bool objectExpression(char op, Object* a, Object* b, Object* out);
 bool objectExpBinary(char op, Object* a, Object* b, Object* out);
 bool objectExpBoolean(char op, Object* a, Object* b, Object* out);
-bool objectNotBinaryExpression(Object* a, Object* out);
-bool objectNotBooleanExpression(Object* a, Object* out);
-bool objectNegExpression(Object* a, Object* out);
-bool objectIncAssign(Object* a, Object* out);
-bool objectDecAssign(Object* a, Object* out);
-bool objectCast(ObjectType variableType, Object* a, Object* out);
 bool objectExpAssign(char op, Object* dest, Object* val, Object* out);
 bool objectValueAssign(Object* dest, Object* val, Object* out);
+bool objectNotBinaryExpression(Object* dest, Object* out);
+bool objectNotExpression(Object* dest, Object* out);
+bool objectNegExpression(Object* dest, Object* out);
+bool objectIncAssign(Object* a, Object* out);
+bool objectDecAssign(Object* a, Object* out);
+bool objectCast(ObjectType variableType, Object* dest, Object* out);
+bool objectFunctionCall(char* name, Object* out);
+bool addFunctionParam(char* name);
 
-bool ifBegin(Object* a);
-bool ifEnd();
-bool ifOnlyEnd();
-bool elseBegin();
-bool elseEnd();
+Object processIdentifier(char* identifier);
 
-bool whileBegin();
-bool whileBodyBegin();
-bool whileEnd();
-
-bool forBegin();
-bool forInitEnd();
-bool forConditionEnd(Object* result);
-bool forHeaderEnd();
-bool foreachHeaderEnd(Object* obj);
-bool forEnd();
-
-bool arrayCreate(Object* out);
-bool objectArrayGet(Object* arr, LinkedList* arraySubscripts, Object* out);
-LinkedList* arraySubscriptBegin(Object* index);
-bool arraySubscriptPush(LinkedList* arraySubscripts, Object* index);
-bool arraySubscriptEnd(LinkedList* arraySubscripts);
+void stdoutPrint();
 
 #endif

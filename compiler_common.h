@@ -13,7 +13,8 @@
 #define getShort(val) (*(int16_t*)&((val)->value))
 #define getInt(val) (*(int32_t*)&((val)->value))
 #define getLong(val) (*(int64_t*)&((val)->value))
-#define getFloat(val) (*(float*)&((val)->value))
+#define setFloat(val, f) { uint32_t temp; memcpy(&temp, &(f), sizeof(float)); (val)->value = temp; }
+#define getFloat(val) ({ float f; uint32_t temp = (uint32_t)((val)->value); memcpy(&f, &temp, sizeof(float)); f; })
 #define getDouble(val) (*(double*)&((val)->value))
 #define getString(val) (*(char**)&((val)->value))
 

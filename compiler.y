@@ -349,19 +349,20 @@ PrimaryExpr
     }
     | FLOAT_LIT { 
         Object* obj = malloc(sizeof(Object));
-        obj->value = $<f_var>1; // 會有問題，因為 value 是 uint64_t
+        // obj->value = $<f_var>1; // 會有問題，因為 value 是 uint64_t
+        setFloat(obj, $<f_var>1); // 這樣才對
         obj->type = OBJECT_TYPE_FLOAT;
         obj->symbol = NULL;
         $$ = *obj;
-        printf("FLOAT_LIT %f\n", $<f_var>1); 
+        // printf("FLOAT_LIT %f\n", $<f_var>1); 
     }
     | BOOL_LIT {
         Object* obj = malloc(sizeof(Object));
-        obj->value = $<b_var>1;
+        obj->value = ($<b_var>1);
         obj->type = OBJECT_TYPE_BOOL;
         obj->symbol = NULL;
         $$ = *obj;
-        printf("BOOL_LIT %s\n", (bool) $$.value ? "TRUE" : "FALSE");
+        // printf("BOOL_LIT %s\n", (bool) $$.value ? "TRUE" : "FALSE");
     }
     | IDENT { $$ = processIdentifier($<s_var>1);}
     | ArrayElementExpr { $$ = $1; }

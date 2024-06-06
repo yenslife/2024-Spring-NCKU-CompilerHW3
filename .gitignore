@@ -4,3 +4,4 @@ build/
 result/
 judge
 judge.sh
+.vscode

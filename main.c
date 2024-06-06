@@ -227,39 +227,68 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
     }
 
     if (op == '+') {
+        if (out->type == OBJECT_TYPE_FLOAT) {            
+            float tmp = getFloat(dest) + getFloat(val);
+            setFloat(out, tmp);
+        } else {
+            out->value = dest->value + val->value;
+        }
         // out->value = dest->value + val->value;
-        printf("ADD\n");
+        // printf("dest value: %f, val value: %f, out value: %f, calculate value: %f\n", (float)dest->value, (float)val->value, (float)out->value, (float)dest->value + val->value);
+        // printf("ADD\n");
     } else if (op == '-') {
+        if (out->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) - getFloat(val);
+            setFloat(out, tmp);
+        } else {
+            out->value = dest->value - val->value;
+        }
         // out->value = dest->value - val->value;
-        printf("SUB\n");
+        // printf("dest value: %f, val value: %f, out value: %f, calculate value: %f\n", (float)dest->value, (float)val->value, (float)out->value, (float)dest->value - val->value);
+        // printf("SUB\n");
     } else if (op == '*') {
+        if (out->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) * getFloat(val);
+            setFloat(out, tmp);
+        } else {
+            out->value = dest->value * val->value;
+        }
         // out->value = dest->value * val->value;
-        printf("MUL\n");
+        // printf("dest value: %d, val value: %f, out value: %f, calculate value: %f\n", (float)dest->value, (float)val->value, getFloat(out), (float)dest->value * val->value);
+        // printf("MUL\n");
     } else if (op == '/') {
+        if (out->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) / getFloat(val);
+            setFloat(out, tmp);
+        } else {
+            out->value = dest->value / val->value;
+        }
         // out->value = dest->value / val->value;
-        printf("DIV\n");
+        // printf("dest value: %ld, val value: %ld, out value: %ld\n", dest->value, val->value, out->value);
+        // printf("dest value: %f, val value: %f, out value: %f, calculate / value: %f\n", (float)dest->value, (float)val->value, (float)out->value, (float)dest->value / val->value);
+        // printf("DIV\n");
     } else if (op == '%') {
-        // out->value = dest->value % val->value;
-        printf("REM\n");
+        out->value = dest->value % val->value;
+        // printf("REM\n");
     }
     return true;
 }
 
 bool objectExpBinary(char op, Object* a, Object* b, Object* out) {
     if (op == '>') {
-        // out->value = a->value >> b->value;
+        out->value = a->value >> b->value;
         printf("SHR\n");
     } else if (op == '<') {
-        // out->value = a->value << b->value;
+        out->value = a->value << b->value;
         printf("SHL\n");
     } else if (op == '|') {
-        // out->value = a->value | b->value;
+        out->value = a->value | b->value;
         printf("BOR\n");
     } else if (op == '&') {
-        // out->value = a->value & b->value;
+        out->value = a->value & b->value;
         printf("BAN\n");
     } else if (op == '^') {
-        // out->value = a->value ^ b->value;
+        out->value = a->value ^ b->value;
         printf("BXO\n");
     } 
     return true;
@@ -267,25 +296,52 @@ bool objectExpBinary(char op, Object* a, Object* b, Object* out) {
 
 bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
     // type convert
+    float tmp1 = getFloat(a);
+    float tmp2 = getFloat(b);
     out->type = OBJECT_TYPE_BOOL;
     if (op == '>') {
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 > tmp2;
+        } else {
+            out->value = a->value > b->value;
+        }
         // out->value = a->value > b->value;
-        printf("GTR\n");
+        // printf("GTR\n");
     } else if (op == '<') {
-        // out->value = a->value < b->value;
-        printf("LES\n");
+        out->value = a->value < b->value;
+        // printf("LES\n");
     } else if (op == '&') {
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 && tmp2;
+        } else {
+            out->value = a->value && b->value;
+        }
         // out->value = a->value && b->value;
-        printf("LAN\n");
+        // printf("LAN\n");
     } else if (op == '|') {
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 || tmp2;
+        } else {
+            out->value = a->value || b->value;
+        }
         // out->value = a->value || b->value;
-        printf("LOR\n");
+        // printf("LOR\n");
     } else if (op == '=') {
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 == tmp2;
+        } else {
+            out->value = a->value == b->value;
+        }
         // out->value = a->value == b->value;
-        printf("EQL\n"); 
+        // printf("EQL\n"); 
     } else if (op == '!') {
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 != tmp2;
+        } else {
+            out->value = a->value != b->value;
+        }
         // out->value = a->value != b->value;
-        printf("NEQ\n");
+        // printf("NEQ\n");
     }
     else {
         // out->type = OBJECT_TYPE_UNDEFINED;
@@ -340,18 +396,34 @@ bool objectNegExpression(Object* dest, Object* out) {
     if (!dest || !out) {
         return false;
     }
-    out->type = OBJECT_TYPE_INT;
-    out->value = -dest->value;
-    printf("NEG\n");
+    if (dest->type == OBJECT_TYPE_FLOAT) {
+        out->type = OBJECT_TYPE_FLOAT;
+        float tmp = -getFloat(dest);
+        setFloat(out, tmp);
+    } else {
+        out->type = OBJECT_TYPE_INT;
+        out->value = -dest->value;
+    }
+    // out->type = OBJECT_TYPE_INT;
+    // out->value = -dest->value;
+    // printf("NEG\n");
     return true;
 }
 bool objectNotExpression(Object* dest, Object* out) {
     if (!dest || !out) {
         return false;
     }
-    out->type = OBJECT_TYPE_BOOL;
-    out->value = !dest->value;
-    printf("NOT\n");
+    if (out->type == OBJECT_TYPE_FLOAT) {
+        out->type = OBJECT_TYPE_FLOAT;
+        float tmp = !getFloat(dest);
+        setFloat(out, tmp);
+    } else {
+        out->type = OBJECT_TYPE_INT;
+        out->value = !dest->value;
+    }
+    // out->type = OBJECT_TYPE_BOOL;
+    // out->value = !dest->value;
+    // printf("NOT\n");
     return true;
 }
 
@@ -514,13 +586,15 @@ void stdoutPrint() {
         // printf(" %s", objectTypeName[coutList[i].type]);
         codeRaw("getstatic java/lang/System/out Ljava/io/PrintStream;");
         if (coutList[i].type == OBJECT_TYPE_INT)
-            code("ldc %d", (int)coutList[i].value);
+            code("ldc \"%d\"", (int)coutList[i].value);
         else if (coutList[i].type == OBJECT_TYPE_FLOAT)
-            code("ldc %.6f", (float)coutList[i].value);
+            code("ldc \"%.6f\"", getFloat(&coutList[i]));
         else if (coutList[i].type == OBJECT_TYPE_STR)
             code("ldc \"%s\"", (char*)coutList[i].value);
         else if (coutList[i].type == OBJECT_TYPE_CHAR) 
             code ("ldc \"%c\"", (char)coutList[i].value);
+        else if (coutList[i].type == OBJECT_TYPE_BOOL)
+            code("ldc \"%s\"", (int)coutList[i].value ? "true" : "false");
         codeRaw("invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V");
         // printf("print: %s\n", coutList[i].value);
     }

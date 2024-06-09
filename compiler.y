@@ -87,7 +87,7 @@ DefineVariableStmt
 
 IdentList
     : IDENT  { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, NULL); }
-    | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); }
+    | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); objectExpAssign('=', $<s_var>1, &$<object_val>3, &$<object_val>3); }
     | IdentList ',' IDENT { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, NULL); }
     | IdentList ',' IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, &$<object_val>5); }
     // array
@@ -183,17 +183,17 @@ forIncrement
 ;
 
 AssignVariableStmtWithoutSemi
-    : IDENT {processIdentifier($<s_var>1);} VAL_ASSIGN Expression { if (!objectExpAssign('=', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} ADD_ASSIGN Expression { if (!objectExpAssign('+', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} SUB_ASSIGN Expression { if (!objectExpAssign('-', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} MUL_ASSIGN Expression { if (!objectExpAssign('*', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} DIV_ASSIGN Expression { if (!objectExpAssign('/', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} REM_ASSIGN Expression { if (!objectExpAssign('%', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} BAN_ASSIGN Expression { if (!objectExpAssign('&', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} BOR_ASSIGN Expression { if (!objectExpAssign('|', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} BXO_ASSIGN Expression { if (!objectExpAssign('^', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} SHR_ASSIGN Expression { if (!objectExpAssign('>', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} SHL_ASSIGN Expression { if (!objectExpAssign('<', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
+    : IDENT {processIdentifier($<s_var>1);} VAL_ASSIGN Expression { if (!objectExpAssign('=', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} ADD_ASSIGN Expression { if (!objectExpAssign('+', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} SUB_ASSIGN Expression { if (!objectExpAssign('-', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} MUL_ASSIGN Expression { if (!objectExpAssign('*', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} DIV_ASSIGN Expression { if (!objectExpAssign('/', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} REM_ASSIGN Expression { if (!objectExpAssign('%', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} BAN_ASSIGN Expression { if (!objectExpAssign('&', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} BOR_ASSIGN Expression { if (!objectExpAssign('|', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} BXO_ASSIGN Expression { if (!objectExpAssign('^', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} SHR_ASSIGN Expression { if (!objectExpAssign('>', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} SHL_ASSIGN Expression { if (!objectExpAssign('<', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
 ;
 
 WHILEStmt
@@ -211,23 +211,23 @@ ElseStmt
     | /* Empty else */
 
 AssignVariableStmt
-    : IDENT {processIdentifier($<s_var>1);} VAL_ASSIGN Expression ';' { if (!objectExpAssign('=', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} ADD_ASSIGN Expression ';' { if (!objectExpAssign('+', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} SUB_ASSIGN Expression ';' { if (!objectExpAssign('-', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} MUL_ASSIGN Expression ';' { if (!objectExpAssign('*', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} DIV_ASSIGN Expression ';' { if (!objectExpAssign('/', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} REM_ASSIGN Expression ';' { if (!objectExpAssign('%', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} BAN_ASSIGN Expression ';' { if (!objectExpAssign('&', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} BOR_ASSIGN Expression ';' { if (!objectExpAssign('|', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} BXO_ASSIGN Expression ';' { if (!objectExpAssign('^', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} SHR_ASSIGN Expression ';' { if (!objectExpAssign('>', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
-    | IDENT {processIdentifier($<s_var>1);} SHL_ASSIGN Expression ';' { if (!objectExpAssign('<', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }
+    : IDENT {processIdentifier($<s_var>1);} VAL_ASSIGN Expression ';' { if (!objectExpAssign('=', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} ADD_ASSIGN Expression ';' { if (!objectExpAssign('+', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} SUB_ASSIGN Expression ';' { if (!objectExpAssign('-', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} MUL_ASSIGN Expression ';' { if (!objectExpAssign('*', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} DIV_ASSIGN Expression ';' { if (!objectExpAssign('/', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} REM_ASSIGN Expression ';' { if (!objectExpAssign('%', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} BAN_ASSIGN Expression ';' { if (!objectExpAssign('&', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} BOR_ASSIGN Expression ';' { if (!objectExpAssign('|', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} BXO_ASSIGN Expression ';' { if (!objectExpAssign('^', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} SHR_ASSIGN Expression ';' { if (!objectExpAssign('>', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    | IDENT {processIdentifier($<s_var>1);} SHL_ASSIGN Expression ';' { if (!objectExpAssign('<', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
 
 ;
 
 CoutParmListStmt
-    : CoutParmListStmt SHL CoutExpr { pushFunInParm(&$<object_val>3); }
-    | SHL CoutExpr { pushFunInParm(&$<object_val>2); }
+    : CoutParmListStmt SHL {codeRaw("getstatic java/lang/System/out Ljava/io/PrintStream;");} CoutExpr { pushFunInParm($<object_val>4); }
+    | SHL {codeRaw("getstatic java/lang/System/out Ljava/io/PrintStream;"); } CoutExpr { pushFunInParm($<object_val>3); }
 ;
 
 CoutExpr 
@@ -290,8 +290,8 @@ RelationalExpr : ShiftExpr { $$ = $1;}
                ;
 
 ShiftExpr : AdditiveExpr { $$ = $1;}
-          | ShiftExpr SHL AdditiveExpr { printf("SHL\n"); $$ = $1;}
-          | ShiftExpr SHR AdditiveExpr { printf("SHR\n"); $$ = $1;}
+          | ShiftExpr SHL AdditiveExpr { objectExpBinary('<', &$<object_val>1, &$<object_val>3, &$$); }
+          | ShiftExpr SHR AdditiveExpr { objectExpBinary('>', &$<object_val>1, &$<object_val>3, &$$); }
           ; 
 
 AdditiveExpr : MultiplicativeExpr { $$ = $1;}
@@ -330,6 +330,7 @@ PrimaryExpr
         $$ = *obj;
         // code("ldc \"%s\"", $<s_var>1);
         // printf("STR_LIT \"%s\"\n", (char *) $$.value); 
+        processExp($$);
     }
     | CHAR_LIT { 
         Object* obj = malloc(sizeof(Object));
@@ -338,6 +339,7 @@ PrimaryExpr
         obj->symbol = NULL;
         $$ = *obj;
         // printf("CHAR_LIT '%c'\n", (char) $<c_var>1); 
+        processExp($$);
     }
     | INT_LIT { 
         Object* obj = malloc(sizeof(Object));
@@ -346,6 +348,7 @@ PrimaryExpr
         obj->symbol = NULL;
         $$ = *obj;
         // printf("INT_LIT %d\n", (int) $$.value); 
+        processExp($$);
     }
     | FLOAT_LIT { 
         Object* obj = malloc(sizeof(Object));
@@ -355,6 +358,7 @@ PrimaryExpr
         obj->symbol = NULL;
         $$ = *obj;
         // printf("FLOAT_LIT %f\n", $<f_var>1); 
+        processExp($$);
     }
     | BOOL_LIT {
         Object* obj = malloc(sizeof(Object));
@@ -363,8 +367,9 @@ PrimaryExpr
         obj->symbol = NULL;
         $$ = *obj;
         // printf("BOOL_LIT %s\n", (bool) $$.value ? "TRUE" : "FALSE");
+        processExp($$);
     }
-    | IDENT { $$ = processIdentifier($<s_var>1);}
+    | IDENT { $$ = processIdentifier($<s_var>1); }
     | ArrayElementExpr { $$ = $1; }
 ;
 %%

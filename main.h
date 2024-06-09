@@ -33,14 +33,14 @@ void pushArrayVariable(ObjectType variableType, char* variableName, int variable
 void incrementArrayElement();
 void nonInitArray();
 void createFunction(ObjectType variableType, char* funcName);
-void pushFunInParm(Object* b);
+void pushFunInParm(Object b);
 
 Object* findVariable(char* variableName, ObjectType variableType);
 Object* createVariable(ObjectType variableType, char* variableName, int variableFlag);
 bool objectExpression(char op, Object* a, Object* b, Object* out);
 bool objectExpBinary(char op, Object* a, Object* b, Object* out);
 bool objectExpBoolean(char op, Object* a, Object* b, Object* out);
-bool objectExpAssign(char op, Object* dest, Object* val, Object* out);
+bool objectExpAssign(char op, char* identifier, Object* val, Object* out);
 bool objectValueAssign(Object* dest, Object* val, Object* out);
 bool objectNotBinaryExpression(Object* dest, Object* out);
 bool objectNotExpression(Object* dest, Object* out);

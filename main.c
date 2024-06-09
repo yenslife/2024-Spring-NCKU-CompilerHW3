@@ -67,6 +67,7 @@ int indent = 0;
 int scopeLevel = -1;
 int funcLineNo = 0;
 int variableAddress = 0;
+int conditionIndex = 0;
 bool emptyArray = false;
 int arraySize = 0;
 ObjectType variableIdentType;
@@ -86,14 +87,14 @@ void pushScope() {
 }
 
 void dumpScope() {
-    // printf("\n> Dump symbol table (scope level: %d)\n", scopeLevel);
-    // printf("Index     Name                Type      Addr      Lineno    Func_sig  \n");
+    printf("\n> Dump symbol table (scope level: %d)\n", scopeLevel);
+    printf("Index     Name                Type      Addr      Lineno    Func_sig  \n");
     struct list_head *pos;
     Object *obj;
     list_for_each(pos, scopeList[scopeLevel]) {
         obj = list_entry(pos, Object, list);
-        // printf("%-10d%-20s%-10s%-10ld%-10d%-10s\n"
-        //     , obj->symbol->index, obj->symbol->name, objectTypeName[obj->type], obj->symbol->addr, obj->symbol->lineno, obj->symbol->func_sig);
+        printf("%-10d%-20s%-10s%-10ld%-10d%-10s\n"
+            , obj->symbol->index, obj->symbol->name, objectTypeName[obj->type], obj->symbol->addr, obj->symbol->lineno, obj->symbol->func_sig);
     }
     scopeLevel--;
 }
@@ -131,7 +132,7 @@ void pushVariable(ObjectType variableType, char* variableName, int variableFlag,
         variableType = variable->type;
     }
     Object* mainVariable = createVariable(variableType, variableName, variableFlag);
-    printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, mainVariable->symbol->addr, scopeLevel);
+    // printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, mainVariable->symbol->addr, scopeLevel);
 
     // calculate index
     mainVariable->symbol->index = list_empty(scopeList[scopeLevel]) ? 0 : list_entry(scopeList[scopeLevel]->prev, Object, list)->symbol->index + 1;
@@ -153,7 +154,7 @@ void pushArrayVariable(ObjectType variableType, char* variableName, int variable
 
     if (arraySize != -1)
         printf("create array: %d\n", arraySize);
-    printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, variable->symbol->addr, scopeLevel);
+    // printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, variable->symbol->addr, scopeLevel);
 
     // calculate index
     variable->symbol->index = list_empty(scopeList[scopeLevel]) ? 0 : list_entry(scopeList[scopeLevel]->prev, Object, list)->symbol->index + 1;
@@ -230,8 +231,10 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
         if (out->type == OBJECT_TYPE_FLOAT) {            
             float tmp = getFloat(dest) + getFloat(val);
             setFloat(out, tmp);
+            codeRaw("fadd");
         } else {
             out->value = dest->value + val->value;
+            codeRaw("iadd");
         }
         // out->value = dest->value + val->value;
         // printf("dest value: %f, val value: %f, out value: %f, calculate value: %f\n", (float)dest->value, (float)val->value, (float)out->value, (float)dest->value + val->value);
@@ -240,8 +243,10 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
         if (out->type == OBJECT_TYPE_FLOAT) {
             float tmp = getFloat(dest) - getFloat(val);
             setFloat(out, tmp);
+            codeRaw("fsub");
         } else {
             out->value = dest->value - val->value;
+            codeRaw("isub");
         }
         // out->value = dest->value - val->value;
         // printf("dest value: %f, val value: %f, out value: %f, calculate value: %f\n", (float)dest->value, (float)val->value, (float)out->value, (float)dest->value - val->value);
@@ -250,8 +255,10 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
         if (out->type == OBJECT_TYPE_FLOAT) {
             float tmp = getFloat(dest) * getFloat(val);
             setFloat(out, tmp);
+            codeRaw("fmul");
         } else {
             out->value = dest->value * val->value;
+            codeRaw("imul");
         }
         // out->value = dest->value * val->value;
         // printf("dest value: %d, val value: %f, out value: %f, calculate value: %f\n", (float)dest->value, (float)val->value, getFloat(out), (float)dest->value * val->value);
@@ -260,8 +267,10 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
         if (out->type == OBJECT_TYPE_FLOAT) {
             float tmp = getFloat(dest) / getFloat(val);
             setFloat(out, tmp);
+            codeRaw("fdiv");
         } else {
             out->value = dest->value / val->value;
+            codeRaw("idiv");
         }
         // out->value = dest->value / val->value;
         // printf("dest value: %ld, val value: %ld, out value: %ld\n", dest->value, val->value, out->value);
@@ -270,6 +279,7 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
     } else if (op == '%') {
         out->value = dest->value % val->value;
         // printf("REM\n");
+        codeRaw("irem");
     }
     return true;
 }
@@ -277,19 +287,24 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
 bool objectExpBinary(char op, Object* a, Object* b, Object* out) {
     if (op == '>') {
         out->value = a->value >> b->value;
-        printf("SHR\n");
+        // printf("SHR\n");
+        codeRaw("ishr");
     } else if (op == '<') {
         out->value = a->value << b->value;
-        printf("SHL\n");
+        // printf("SHL\n");
+        codeRaw("ishl");
     } else if (op == '|') {
         out->value = a->value | b->value;
-        printf("BOR\n");
+        // printf("BOR\n");
+        codeRaw("ior");
     } else if (op == '&') {
         out->value = a->value & b->value;
-        printf("BAN\n");
+        // printf("BAN\n");
+        codeRaw("iand");
     } else if (op == '^') {
         out->value = a->value ^ b->value;
-        printf("BXO\n");
+        // printf("BXO\n");
+        codeRaw("ixor");
     } 
     return true;
 }
@@ -302,22 +317,65 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
     if (op == '>') {
         if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
             out->value = tmp1 > tmp2;
+            codeRaw("fcmpl");
         } else {
             out->value = a->value > b->value;
+            // out->value = a->value > b->value;
+            // printf("GTR\n");
+            // 可以用相減的方式來判斷是否大於
+            codeRaw("isub");
         }
-        // out->value = a->value > b->value;
-        // printf("GTR\n");
+        code("ifgt greater_than%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_greater_than%d", conditionIndex);
+        code("greater_than%d:", conditionIndex);
+        codeRaw("ldc 1");
+        code("end_greater_than%d:", conditionIndex);
+        conditionIndex++;
     } else if (op == '<') {
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 < tmp2;
+            codeRaw("fcmpl");
+        } else {
+            out->value = a->value < b->value;
+            codeRaw("isub");
+        }
         out->value = a->value < b->value;
         // printf("LES\n");
+        // 可以用相減的方式來判斷是否小於
+        code("iflt less_than%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_less_than%d", conditionIndex);
+        code("less_than%d:", conditionIndex);   
+        codeRaw("ldc 1");
+        code("end_less_than%d:", conditionIndex);
+        conditionIndex++;
     } else if (op == '&') {
         if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
             out->value = tmp1 && tmp2;
+            codeRaw("fmul");
+            codeRaw("ldc 0.0");
+            codeRaw("fcmpl");
+            code("ifeq and%d", conditionIndex);
+            codeRaw("ldc 0");
+            code("goto end_and%d", conditionIndex);
+            code("and%d:", conditionIndex);
+            codeRaw("ldc 1");
+            code("end_and%d:", conditionIndex);
         } else {
             out->value = a->value && b->value;
+            // out->value = a->value && b->value;
+            // printf("LAN\n");
+            // 可以用相乘的方式來判斷是否為 true
+            codeRaw("imul");
+            code("ifeq and%d", conditionIndex);
+            codeRaw("ldc 0");
+            code("goto end_and%d", conditionIndex);
+            code("and%d:", conditionIndex);
+            codeRaw("ldc 1");
+            code("end_and%d:", conditionIndex);
         }
-        // out->value = a->value && b->value;
-        // printf("LAN\n");
+        conditionIndex++;
     } else if (op == '|') {
         if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
             out->value = tmp1 || tmp2;
@@ -326,6 +384,15 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
         }
         // out->value = a->value || b->value;
         // printf("LOR\n");
+        // 可以用相加的方式來判斷是否為 true
+        codeRaw("iadd");
+        code("ifne or%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_or%d", conditionIndex);
+        code("or%d:", conditionIndex);
+        codeRaw("ldc 1");
+        code("end_or%d:", conditionIndex);
+        conditionIndex++;
     } else if (op == '=') {
         if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
             out->value = tmp1 == tmp2;
@@ -333,7 +400,16 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
             out->value = a->value == b->value;
         }
         // out->value = a->value == b->value;
-        // printf("EQL\n"); 
+        // printf("EQL\n");
+        // 用相減的方式來判斷是否相等
+        codeRaw("isub");
+        code("ifeq equal%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_equal%d", conditionIndex);
+        code("equal%d:", conditionIndex);
+        codeRaw("ldc 1");
+        code("end_equal%d:", conditionIndex);
+        conditionIndex++;
     } else if (op == '!') {
         if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
             out->value = tmp1 != tmp2;
@@ -342,6 +418,15 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
         }
         // out->value = a->value != b->value;
         // printf("NEQ\n");
+        // 用相減的方式來判斷是否不相等
+        codeRaw("isub");
+        code("ifne not_equal%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_not_equal%d", conditionIndex);
+        code("not_equal%d:", conditionIndex);
+        codeRaw("ldc 1");
+        code("end_not_equal%d:", conditionIndex);
+        conditionIndex++;
     }
     else {
         // out->type = OBJECT_TYPE_UNDEFINED;
@@ -350,30 +435,127 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
     return true;
 }
 
-bool objectExpAssign(char op, Object* dest, Object* val, Object* out) {
-    out->type = dest->type;
+bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
+    // printf("id: %s op: %c\n", identifier, op);
+    Object* dest = findVariable(identifier, OBJECT_TYPE_UNDEFINED);
+    // float tmp;
+    if (dest == NULL) {
+        return false;
+    } 
+    if (dest->type == OBJECT_TYPE_UNDEFINED) {
+        dest->type = dest->type;
+    } 
+    if (dest->type == OBJECT_TYPE_AUTO) {
+        dest->type = dest->type;
+    }
     if (op == '=') {
-        printf("EQL_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(val);
+            // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
+            setFloat(dest, tmp);
+            fstore(dest);
+        } else {
+            dest->value = val->value;
+            istore(dest);
+        }
     } else if (op == '+') {
-        printf("ADD_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) + getFloat(val);
+            // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
+            setFloat(dest, tmp);
+            fload(dest);
+            codeRaw("fadd");
+            fstore(dest);
+        } else {
+            dest->value = dest->value + val->value;
+            // load and add
+            iload(dest);
+            codeRaw("iadd");
+            istore(dest);
+        }
+        // printf("ADD_ASSIGN\n");
     } else if (op == '-') {
-        printf("SUB_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) - getFloat(val);
+            // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
+            setFloat(dest, tmp);
+            fload(dest);
+            codeRaw("fsub");
+            fstore(dest);
+        } else {
+            dest->value = dest->value - val->value;
+            // load and sub
+            iload(dest);
+            codeRaw("isub");
+            istore(dest);
+        }
+        // printf("SUB_ASSIGN\n");
     } else if (op == '*') {
-        printf("MUL_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) * getFloat(val);
+            // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
+            setFloat(dest, tmp);
+            fload(dest);
+            codeRaw("fmul");
+            fstore(dest);
+        } else {
+            dest->value = dest->value * val->value;
+            // load and mul
+            iload(dest);
+            codeRaw("imul");
+            fstore(dest);
+        }
+        // printf("MUL_ASSIGN\n");
     } else if (op == '/') {
-        printf("DIV_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) / getFloat(val);
+            setFloat(dest, tmp);
+            fload(dest);
+            codeRaw("fdiv");
+            fstore(dest);
+        } else {
+            dest->value = dest->value / val->value;
+            // load and div
+            iload(dest);
+            codeRaw("idiv");
+            fstore(dest);
+        }   
+        // printf("DIV_ASSIGN\n");
     } else if (op == '%') {
-        printf("REM_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            float tmp = getFloat(dest) / getFloat(val);
+            setFloat(dest, tmp);
+        } else {
+            dest->value = dest->value % val->value;
+        }
+        // printf("REM_ASSIGN\n");
     } else if (op == '|') {
-        printf("BOR_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            return false;
+        } else {
+            dest->value = dest->value | val->value;
+        }
+        // printf("BOR_ASSIGN\n");
     } else if (op == '&') {
-        printf("BAN_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            return false;
+        } else {
+            dest->value = dest->value & val->value;
+        }
+        // printf("BAN_ASSIGN\n");
     } else if (op == '^') {
-        printf("BXO_ASSIGN\n");
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            return false;
+        } else {
+            dest->value = dest->value ^ val->value;
+        }
+        // printf("BXO_ASSIGN\n");
     } else if (op == '>') {
-        printf("SHR_ASSIGN\n");
+        dest->value = dest->value >> val->value;
+        // printf("SHR_ASSIGN\n");
     } else if (op == '<') {
-        printf("SHL_ASSIGN\n");
+        dest->value = dest->value << val->value;
+        // printf("SHL_ASSIGN\n");
     }
     return true;
 }
@@ -388,7 +570,9 @@ bool objectNotBinaryExpression(Object* dest, Object* out) {
     }
     out->type = OBJECT_TYPE_INT;
     out->value = ~dest->value;
-    printf("BNT\n");
+    // printf("BNT\n");
+    codeRaw("ldc -1");
+    codeRaw("ixor");
     return true;
 }
 
@@ -400,9 +584,11 @@ bool objectNegExpression(Object* dest, Object* out) {
         out->type = OBJECT_TYPE_FLOAT;
         float tmp = -getFloat(dest);
         setFloat(out, tmp);
+        codeRaw("fneg");
     } else {
         out->type = OBJECT_TYPE_INT;
         out->value = -dest->value;
+        codeRaw("ineg");
     }
     // out->type = OBJECT_TYPE_INT;
     // out->value = -dest->value;
@@ -424,6 +610,8 @@ bool objectNotExpression(Object* dest, Object* out) {
     // out->type = OBJECT_TYPE_BOOL;
     // out->value = !dest->value;
     // printf("NOT\n");
+    codeRaw("ldc 1");
+    codeRaw("ixor");
     return true;
 }
 
@@ -452,7 +640,7 @@ Object* findVariable(char* variableName, ObjectType variableType) {
     for (int i = scopeLevel; i >= 0; i--) {
         list_for_each(pos, scopeList[i]) {
             obj = list_entry(pos, Object, list);
-            if (strcmp(obj->symbol->name, variableName) == 0 && (variableType == OBJECT_TYPE_UNDEFINED || obj->type == variableType)) {
+            if (strcmp(obj->symbol->name, variableName) == 0) {
                 variable = obj;
                 break;
             }
@@ -464,9 +652,22 @@ Object* findVariable(char* variableName, ObjectType variableType) {
     return variable;
 }
 
-void pushFunInParm(Object* variable) {
+void pushFunInParm(Object variable) {
     // 目前只有 cout 用到
-    coutList[coutIndex++] = *variable;
+    coutList[coutIndex++] = variable;
+    if (variable.type == OBJECT_TYPE_INT) {
+        codeRaw("invokevirtual java/io/PrintStream/print(I)V");
+    } else if (variable.type == OBJECT_TYPE_FLOAT) {
+        codeRaw("invokevirtual java/io/PrintStream/print(F)V");
+    } else if (variable.type == OBJECT_TYPE_STR) {
+        codeRaw("invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V");
+    } else if (variable.type == OBJECT_TYPE_BOOL) {
+        codeRaw("invokevirtual java/io/PrintStream/print(Z)V");
+    } else if (variable.type == OBJECT_TYPE_ENDL) {
+        codeRaw("invokevirtual java/io/PrintStream/println()V");
+    } else if (variable.type == OBJECT_TYPE_CHAR) {
+        codeRaw("invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V");
+    }
 }
 
 bool objectFunctionCall(char* name, Object* out) {
@@ -569,11 +770,23 @@ Object processIdentifier(char* identifier) {
         if (strcmp(identifier, "endl") == 0) {
             obj->symbol->addr = -1;
             obj->value = (uint64_t) "\n";
-            obj->type = OBJECT_TYPE_STR;
+            obj->type = OBJECT_TYPE_ENDL;
         } else {
             obj->symbol->addr = 0; // 如果不是特殊符号，默认地址为 0，可以根据需要修改
             obj->value = 0; // 默认值
             obj->type = OBJECT_TYPE_UNDEFINED; // 默认类型
+        }
+    } else {
+        if (obj->type == OBJECT_TYPE_INT) {
+            iload(obj);
+        } else if (obj->type == OBJECT_TYPE_FLOAT) {
+            fload(obj);
+        } else if (obj->type == OBJECT_TYPE_STR) {
+            aload(obj);
+        } else if (obj->type == OBJECT_TYPE_BOOL) {
+            iload(obj);
+        } else if (obj->type == OBJECT_TYPE_CHAR) {
+            aload(obj);
         }
     }
     // printf("IDENT (name=%s, address=%ld)\n", obj->symbol->name, obj->symbol->addr);
@@ -581,26 +794,75 @@ Object processIdentifier(char* identifier) {
 }
 
 void stdoutPrint() {
-    // printf("cout");
+    printf("cout");
     for (int i = 0; i < coutIndex; i++) {
         // printf(" %s", objectTypeName[coutList[i].type]);
-        codeRaw("getstatic java/lang/System/out Ljava/io/PrintStream;");
-        if (coutList[i].type == OBJECT_TYPE_INT)
-            code("ldc \"%d\"", (int)coutList[i].value);
-        else if (coutList[i].type == OBJECT_TYPE_FLOAT)
-            code("ldc \"%.6f\"", getFloat(&coutList[i]));
-        else if (coutList[i].type == OBJECT_TYPE_STR)
-            code("ldc \"%s\"", (char*)coutList[i].value);
-        else if (coutList[i].type == OBJECT_TYPE_CHAR) 
-            code ("ldc \"%c\"", (char)coutList[i].value);
-        else if (coutList[i].type == OBJECT_TYPE_BOOL)
-            code("ldc \"%s\"", (int)coutList[i].value ? "true" : "false");
-        codeRaw("invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V");
+        
+        if (coutList[i].type == OBJECT_TYPE_ENDL) {
+            // codeRaw("invokevirtual java/io/PrintStream/println()V");
+        }
+        else if (coutList[i].type == OBJECT_TYPE_INT) {
+            // code("ldc \"%d\"", (int)coutList[i].value);
+            // ldi(&coutList[i]);
+            // codeRaw("invokevirtual java/io/PrintStream/print(I)V");
+        } else if (coutList[i].type == OBJECT_TYPE_FLOAT) {
+            // char format[10];
+            // char output[100];
+            // // 根據值去計算小數點後幾位，存在變數 decimal p
+            // int decimal = 0;
+            // float tmp = getFloat(&coutList[i]);
+            // while (tmp != (int)tmp) {
+            //     tmp *= 10;
+            //     decimal++;
+            // }
+            // sprintf(format, "\"%%.%df\"\n", decimal);
+            // sprintf(output, format, getFloat(&coutList[i]));
+            // fprintf(yyout, "ldc %s\n", output);
+            // code("ldc \"%f\"", getFloat(&coutList[i]));
+            // ldf(&coutList[i]);
+            // codeRaw("invokevirtual java/io/PrintStream/print(F)V");
+        }
+        else if (coutList[i].type == OBJECT_TYPE_STR){
+            // code("ldc \"%s\"", (char*)coutList[i].value);
+            // ldt(&coutList[i]);
+            // codeRaw("invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V");
+        }
+        else if (coutList[i].type == OBJECT_TYPE_CHAR) {
+            // code ("ldc \"%c\"", (char)coutList[i].value);
+            // lds(&coutList[i]);
+            // codeRaw("invokevirtual java/io/PrintStream/print(C)V");
+        }
+        else if (coutList[i].type == OBJECT_TYPE_BOOL) {
+            // code("ldc \"%s\"", (int)coutList[i].value ? "true" : "false");
+            // ldz(&coutList[i]);
+            // codeRaw("invokevirtual java/io/PrintStream/print(Z)V");
+        } else {
+            // code("ldc \"%s\"", objectTypeName[coutList[i].type]);
+            printf(" ctype: %s\n", objectTypeName[coutList[i].type]);
+        }
+        // codeRaw("swap");
         // printf("print: %s\n", coutList[i].value);
     }
     // printf("\n");
+    // codeRaw("invokevirtual java/io/PrintStream/print(I)V");
     // codeRaw("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
     coutIndex = 0;
+}
+
+void processExp(Object obj){
+    if (obj.type == OBJECT_TYPE_INT) {
+        code("ldc %d", (int)obj.value);
+    } else if (obj.type == OBJECT_TYPE_FLOAT) {
+        code("ldc %f", getFloat(&obj));
+        printf("processExp: %f\n", getFloat(&obj));
+    } else if (obj.type == OBJECT_TYPE_STR) {
+        code("ldc \"%s\"", (char*)obj.value);
+        printf("processExp: %s\n", (char*)obj.value);
+    } else if (obj.type == OBJECT_TYPE_CHAR) {
+        code("ldc \"%c\"", (char)obj.value);
+    } else if (obj.type == OBJECT_TYPE_BOOL) {
+        code("ldc %d", (int)obj.value ? 1 : 0);
+    }
 }
 
 int main(int argc, char* argv[]) {

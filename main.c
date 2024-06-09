@@ -454,8 +454,20 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
             setFloat(dest, tmp);
             fstore(dest);
-        } else {
+        } else if (dest->type == OBJECT_TYPE_INT) {
             dest->value = val->value;
+            istore(dest);
+        } else if (dest->type == OBJECT_TYPE_STR) {
+            dest->value = val->value;
+            astore(dest);
+        } else if (dest->type == OBJECT_TYPE_BOOL) {
+            dest->value = val->value;
+            // 儲存 boolean 要用 1 來表示 true
+            if (val->value == 0) {
+                ldz(dest);
+            } else {
+                ldi(dest);
+            }
             istore(dest);
         }
     } else if (op == '+') {
@@ -480,12 +492,14 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
             setFloat(dest, tmp);
             fload(dest);
+            codeRaw("swap");
             codeRaw("fsub");
             fstore(dest);
         } else {
             dest->value = dest->value - val->value;
             // load and sub
             iload(dest);
+            codeRaw("swap");
             codeRaw("isub");
             istore(dest);
         }
@@ -503,7 +517,7 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             // load and mul
             iload(dest);
             codeRaw("imul");
-            fstore(dest);
+            istore(dest);
         }
         // printf("MUL_ASSIGN\n");
     } else if (op == '/') {
@@ -511,36 +525,63 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             float tmp = getFloat(dest) / getFloat(val);
             setFloat(dest, tmp);
             fload(dest);
+            codeRaw("swap");
             codeRaw("fdiv");
             fstore(dest);
         } else {
             dest->value = dest->value / val->value;
             // load and div
             iload(dest);
+            codeRaw("swap");
             codeRaw("idiv");
-            fstore(dest);
+            istore(dest);
         }   
         // printf("DIV_ASSIGN\n");
     } else if (op == '%') {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             float tmp = getFloat(dest) / getFloat(val);
             setFloat(dest, tmp);
+            fload(dest);
+            codeRaw("swap");
+            codeRaw("frem");
+            fstore(dest);
         } else {
             dest->value = dest->value % val->value;
+            // load and rem
+            iload(dest);
+            codeRaw("swap");
+            codeRaw("irem");
+            istore(dest);
         }
         // printf("REM_ASSIGN\n");
     } else if (op == '|') {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             return false;
+            fload(dest);
+            codeRaw("swap");
+            codeRaw("ior");
+            fstore(dest);
         } else {
             dest->value = dest->value | val->value;
+            iload(dest);
+            codeRaw("swap");
+            codeRaw("ior");
+            istore(dest);
         }
         // printf("BOR_ASSIGN\n");
     } else if (op == '&') {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             return false;
+            fload(dest);
+            codeRaw("swap");
+            codeRaw("fand");
+            fstore(dest);
         } else {
             dest->value = dest->value & val->value;
+            iload(dest);
+            codeRaw("swap");
+            codeRaw("iand");
+            istore(dest);
         }
         // printf("BAN_ASSIGN\n");
     } else if (op == '^') {

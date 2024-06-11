@@ -139,6 +139,9 @@ void pushVariable(ObjectType variableType, char* variableName, int variableFlag,
 
     // add to scope list
     list_add_tail(&mainVariable->list, scopeList[scopeLevel]);
+
+    codeRaw("ldc 0");
+    istore(mainVariable);
 }
 
 void pushVariableList(ObjectType varType) {
@@ -593,9 +596,13 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
         // printf("BXO_ASSIGN\n");
     } else if (op == '>') {
         dest->value = dest->value >> val->value;
+        codeRaw("iushr");
+        istore(dest);
         // printf("SHR_ASSIGN\n");
     } else if (op == '<') {
         dest->value = dest->value << val->value;
+        codeRaw("ishl");
+        istore(dest);
         // printf("SHL_ASSIGN\n");
     }
     return true;

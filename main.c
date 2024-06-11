@@ -140,8 +140,23 @@ void pushVariable(ObjectType variableType, char* variableName, int variableFlag,
     // add to scope list
     list_add_tail(&mainVariable->list, scopeList[scopeLevel]);
 
-    codeRaw("ldc 0");
-    istore(mainVariable);
+    if (variableType == OBJECT_TYPE_INT) {
+        codeRaw("ldc 0");
+        istore(mainVariable);
+    } else if (variableType == OBJECT_TYPE_FLOAT) {
+        codeRaw("ldc 0.0");
+        fstore(mainVariable);
+    } else if (variableType == OBJECT_TYPE_STR) {
+        codeRaw("ldc \"\"");
+        astore(mainVariable);
+    } else if (variableType == OBJECT_TYPE_BOOL) {
+        if (variable->value == 0) {
+            ldz(mainVariable);
+        } else {
+            ldi(mainVariable);
+        }
+        istore(mainVariable);
+    }
 }
 
 void pushVariableList(ObjectType varType) {
@@ -441,6 +456,16 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
 bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
     // printf("id: %s op: %c\n", identifier, op);
     Object* dest = findVariable(identifier, OBJECT_TYPE_UNDEFINED);
+    if (val->type == OBJECT_TYPE_INT) {
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            codeRaw("i2f");
+        }
+    } else if (val->type == OBJECT_TYPE_FLOAT) {
+        if (dest->type == OBJECT_TYPE_INT) {
+            codeRaw("f2i");
+        }
+    }
+    
     // float tmp;
     if (dest == NULL) {
         return false;
@@ -678,6 +703,18 @@ bool objectCast(ObjectType variableType, Object* dest, Object* out) {
     out->type = variableType;
     out->value = dest->value;
     printf("Cast to %s\n", objectTypeName[variableType]);
+    if (dest->type == variableType) {
+        return true;
+    }
+    if (variableType == OBJECT_TYPE_FLOAT) {
+        if (dest->type == OBJECT_TYPE_INT) {
+            codeRaw("i2f");
+        } 
+    } else if (variableType == OBJECT_TYPE_INT) {
+        if (dest->type == OBJECT_TYPE_FLOAT) {
+            codeRaw("f2i");
+        }
+    }
     return true;
 }
 

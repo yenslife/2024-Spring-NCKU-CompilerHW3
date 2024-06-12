@@ -13,7 +13,7 @@ LEX_OUT := ${BUILD}/lex.yy.c
 YAC_OUT := ${BUILD}/y.tab.c
 MAIN_OUT := ${BUILD}/main.o
 
-IN := ./input/subtask05-casting/testcase01.cpp
+IN := ./input/subtask06-if/testcase01.cpp
 ASM_OUT := ${BUILD}/Main.j# 				Do not touch
 PGM_OUT := ${BUILD_OUT}/${EXEC}.class# 		Do not touch
 

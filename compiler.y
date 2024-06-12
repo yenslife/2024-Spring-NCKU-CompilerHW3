@@ -89,7 +89,7 @@ IdentList
     : IDENT  { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, NULL); }
     | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); objectExpAssign('=', $<s_var>1, &$<object_val>3, &$<object_val>3); }
     | IdentList ',' IDENT { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, NULL); }
-    | IdentList ',' IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, &$<object_val>5); }
+    | IdentList ',' IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, &$<object_val>5); objectExpAssign('=', $<s_var>3, &$<object_val>5, &$<object_val>5); }
     // array
     | IDENT ArrayDimensions ArrayInitList {pushArrayVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_ARRAY);} 
 ;
@@ -114,7 +114,7 @@ ArrayElementList
 FunctionDefStmt
     : 
      /* VARIABLE_T IDENT '(' FunctionParameterStmtList ')' { createFunction($<var_type>1, $<s_var>2); } '{' '}' { dumpScope(); } */
-    | VARIABLE_T IDENT '(' { createFunction($<var_type>1, $<s_var>2); } FunctionParameterStmtList ')' { addFunctionParam($<s_var>2); } '{' StmtList '}' { codeRaw("return"); codeRaw(".end method");} { dumpScope(); }
+    | VARIABLE_T IDENT '(' { createFunction($<var_type>1, $<s_var>2); } FunctionParameterStmtList ')' { addFunctionParam($<s_var>2); } '{' StmtList '}' { codeRaw("return"); } { dumpScope(); codeRaw(".end method");}
 ;
 FunctionParameterStmtList 
     : FunctionParameterStmtList ',' FunctionParameterStmt
@@ -201,13 +201,13 @@ WHILEStmt
 
 
 IFStmt
-    : IF '(' Expression ')' {printf("IF\n"); pushScope();} '{' StmtList '}' {dumpScope();} ElseStmt
+    : IF '(' Expression ')' { ifBranch_init(); printf("IF\n"); pushScope();} '{' StmtList '}' {dumpScope();} { ifStmtEnd(); } ElseStmt { ifEnd(); }
     /* | IF '(' Expression ')' {printf("IF\n"); pushScope();} '{' StmtList '}' {dumpScope();} */
-    | IF '(' Expression ')' { printf("IF\n"); } Stmt 
+    | IF '(' Expression ')' { ifBranch_init(); printf("IF\n"); } Stmt { ifEnd(); } 
 ;
 
 ElseStmt
-    : ELSE {printf("ELSE\n"); pushScope();}'{' StmtList '}' {dumpScope();}
+    : ELSE { printf("ELSE\n"); pushScope();}'{' StmtList '}' {dumpScope();}
     | /* Empty else */
 
 AssignVariableStmt
@@ -284,9 +284,9 @@ EqualityExpr : RelationalExpr { $$ = $1;}
 
 RelationalExpr : ShiftExpr { $$ = $1;}
                | RelationalExpr LES AdditiveExpr { if (!objectExpBoolean('<', &$<object_val>1, &$<object_val>3, &$$)) YYABORT; }
-               | RelationalExpr LEQ AdditiveExpr { printf("LEQ\n"); $$ = $1;}
+               | RelationalExpr LEQ AdditiveExpr { if (!objectExpBoolean('L', &$<object_val>1, &$<object_val>3, &$$)) YYABORT; }
                | RelationalExpr GTR AdditiveExpr { if (!objectExpBoolean('>', &$<object_val>1, &$<object_val>3, &$$)) YYABORT; }
-               | RelationalExpr GEQ AdditiveExpr { printf("GEQ\n"); $$ = $1;}
+               | RelationalExpr GEQ AdditiveExpr { if (!objectExpBoolean('G', &$<object_val>1, &$<object_val>3, &$$)) YYABORT; }
                ;
 
 ShiftExpr : AdditiveExpr { $$ = $1;}

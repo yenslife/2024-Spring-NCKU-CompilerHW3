@@ -68,6 +68,7 @@ int scopeLevel = -1;
 int funcLineNo = 0;
 int variableAddress = 0;
 int conditionIndex = 0;
+int ifIndex[1024] = {0}; // index 為 scope level
 bool emptyArray = false;
 int arraySize = 0;
 ObjectType variableIdentType;
@@ -97,6 +98,23 @@ void dumpScope() {
             , obj->symbol->index, obj->symbol->name, objectTypeName[obj->type], obj->symbol->addr, obj->symbol->lineno, obj->symbol->func_sig);
     }
     scopeLevel--;
+}
+
+void ifBranch_init() {
+    printf("scopeLevel: %d\n", scopeLevel);
+    code("ifne if_true%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("goto if_false%d_scope%d", ifIndex[scopeLevel], scopeLevel); // 如果不成立就跳到 if_false
+    code("if_true%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
+
+void ifStmtEnd() { // 放在 if 區塊的最後一行
+    code("goto if_end%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("if_false%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
+
+void ifEnd() { // 放在整個 if 巢狀的最後一行
+    code("if_end%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    ifIndex[scopeLevel]++;
 }
 
 Object* createVariable(ObjectType variableType, char* variableName, int variableFlag) {
@@ -374,7 +392,7 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
             codeRaw("fmul");
             codeRaw("ldc 0.0");
             codeRaw("fcmpl");
-            code("ifeq and%d", conditionIndex);
+            code("ifne and%d", conditionIndex);
             codeRaw("ldc 0");
             code("goto end_and%d", conditionIndex);
             code("and%d:", conditionIndex);
@@ -386,7 +404,7 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
             // printf("LAN\n");
             // 可以用相乘的方式來判斷是否為 true
             codeRaw("imul");
-            code("ifeq and%d", conditionIndex);
+            code("ifne and%d", conditionIndex);
             codeRaw("ldc 0");
             code("goto end_and%d", conditionIndex);
             code("and%d:", conditionIndex);
@@ -444,6 +462,42 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
         code("not_equal%d:", conditionIndex);
         codeRaw("ldc 1");
         code("end_not_equal%d:", conditionIndex);
+        conditionIndex++;
+    } else if (op == 'L') { // less equal
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 <= tmp2;
+            codeRaw("fcmpl");
+        } else {
+            out->value = a->value <= b->value;
+            codeRaw("isub");
+        }
+        // out->value = a->value <= b->value;
+        // printf("LEQ\n");
+        // 用相減的方式來判斷是否小於等於
+        code("ifle less_equal%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_less_equal%d", conditionIndex);
+        code("less_equal%d:", conditionIndex);
+        codeRaw("ldc 1");
+        code("end_less_equal%d:", conditionIndex);
+        conditionIndex++;
+    } else if (op == 'G') { // greater equal
+        if (a->type == OBJECT_TYPE_FLOAT || b->type == OBJECT_TYPE_FLOAT) {
+            out->value = tmp1 >= tmp2;
+            codeRaw("fcmpl");
+        } else {
+            out->value = a->value >= b->value;
+            codeRaw("isub");
+        }
+        // out->value = a->value >= b->value;
+        // printf("GEQ\n");
+        // 用相減的方式來判斷是否大於等於
+        code("ifge greater_equal%d", conditionIndex);
+        codeRaw("ldc 0");
+        code("goto end_greater_equal%d", conditionIndex);
+        code("greater_equal%d:", conditionIndex);
+        codeRaw("ldc 1");
+        code("end_greater_equal%d:", conditionIndex);
         conditionIndex++;
     }
     else {
@@ -879,7 +933,6 @@ Object processIdentifier(char* identifier) {
 }
 
 void stdoutPrint() {
-    printf("cout");
     for (int i = 0; i < coutIndex; i++) {
         // printf(" %s", objectTypeName[coutList[i].type]);
         
@@ -939,10 +992,8 @@ void processExp(Object obj){
         code("ldc %d", (int)obj.value);
     } else if (obj.type == OBJECT_TYPE_FLOAT) {
         code("ldc %f", getFloat(&obj));
-        printf("processExp: %f\n", getFloat(&obj));
     } else if (obj.type == OBJECT_TYPE_STR) {
         code("ldc \"%s\"", (char*)obj.value);
-        printf("processExp: %s\n", (char*)obj.value);
     } else if (obj.type == OBJECT_TYPE_CHAR) {
         code("ldc \"%c\"", (char)obj.value);
     } else if (obj.type == OBJECT_TYPE_BOOL) {

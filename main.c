@@ -100,6 +100,20 @@ void dumpScope() {
     scopeLevel--;
 }
 
+
+void whileBranchInit() {
+    code("while_condition%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
+void whileBranch() {
+    code("ifeq while_false%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+}
+
+void whileStmtEnd() { // 放在 while 區塊的最後一行
+    code("goto while_condition%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("while_false%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    ifIndex[scopeLevel]++;
+}
+
 void ifBranch_init() {
     printf("scopeLevel: %d\n", scopeLevel);
     code("ifne if_true%d_scope%d", ifIndex[scopeLevel], scopeLevel);
@@ -573,15 +587,15 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             float tmp = getFloat(dest) - getFloat(val);
             // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
             setFloat(dest, tmp);
-            fload(dest);
-            codeRaw("swap");
+            // fload(dest);
+            // codeRaw("swap");
             codeRaw("fsub");
             fstore(dest);
         } else {
             dest->value = dest->value - val->value;
             // load and sub
-            iload(dest);
-            codeRaw("swap");
+            // iload(dest);
+            // codeRaw("swap");
             codeRaw("isub");
             istore(dest);
         }
@@ -606,15 +620,15 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             float tmp = getFloat(dest) / getFloat(val);
             setFloat(dest, tmp);
-            fload(dest);
-            codeRaw("swap");
+            // fload(dest);
+            // codeRaw("swap");
             codeRaw("fdiv");
             fstore(dest);
         } else {
             dest->value = dest->value / val->value;
             // load and div
-            iload(dest);
-            codeRaw("swap");
+            // iload(dest);
+            // codeRaw("swap");
             codeRaw("idiv");
             istore(dest);
         }   
@@ -623,15 +637,15 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             float tmp = getFloat(dest) / getFloat(val);
             setFloat(dest, tmp);
-            fload(dest);
-            codeRaw("swap");
+            // fload(dest);
+            // codeRaw("swap");
             codeRaw("frem");
             fstore(dest);
         } else {
             dest->value = dest->value % val->value;
             // load and rem
-            iload(dest);
-            codeRaw("swap");
+            // iload(dest);
+            // codeRaw("swap");
             codeRaw("irem");
             istore(dest);
         }
@@ -639,14 +653,14 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
     } else if (op == '|') {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             return false;
-            fload(dest);
-            codeRaw("swap");
+            // fload(dest);
+            // codeRaw("swap");
             codeRaw("ior");
             fstore(dest);
         } else {
             dest->value = dest->value | val->value;
-            iload(dest);
-            codeRaw("swap");
+            // iload(dest);
+            // codeRaw("swap");
             codeRaw("ior");
             istore(dest);
         }
@@ -654,14 +668,14 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
     } else if (op == '&') {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             return false;
-            fload(dest);
-            codeRaw("swap");
+            // fload(dest);
+            // codeRaw("swap");
             codeRaw("fand");
             fstore(dest);
         } else {
             dest->value = dest->value & val->value;
-            iload(dest);
-            codeRaw("swap");
+            // iload(dest);
+            // codeRaw("swap");
             codeRaw("iand");
             istore(dest);
         }

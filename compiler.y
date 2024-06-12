@@ -197,7 +197,7 @@ AssignVariableStmtWithoutSemi
 ;
 
 WHILEStmt
-    : WHILE {printf("WHILE\n");} Expression {pushScope();} '{' StmtList '}' {dumpScope();}
+    : WHILE { printf("WHILE\n"); whileBranchInit(); } Expression { whileBranch(); pushScope();} '{' StmtList '}' { dumpScope(); whileStmtEnd(); }
 
 
 IFStmt

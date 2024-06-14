@@ -114,7 +114,7 @@ ArrayElementList
 FunctionDefStmt
     : 
      /* VARIABLE_T IDENT '(' FunctionParameterStmtList ')' { createFunction($<var_type>1, $<s_var>2); } '{' '}' { dumpScope(); } */
-    | VARIABLE_T IDENT '(' { createFunction($<var_type>1, $<s_var>2); } FunctionParameterStmtList ')' { addFunctionParam($<s_var>2); } '{' StmtList '}' { codeRaw("return"); } { dumpScope(); codeRaw(".end method");}
+    | VARIABLE_T IDENT '(' { createFunction($<var_type>1, $<s_var>2); } FunctionParameterStmtList ')' { addFunctionParam($<s_var>2, $<var_type>1); } '{' StmtList { codeReturn($<var_type>1, $<s_var>2); } '}'  { dumpScope(); codeRaw(".end method");}
 ;
 FunctionParameterStmtList 
     : FunctionParameterStmtList ',' FunctionParameterStmt

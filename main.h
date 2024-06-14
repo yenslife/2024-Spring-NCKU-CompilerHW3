@@ -49,7 +49,7 @@ bool objectIncAssign(Object* a, Object* out);
 bool objectDecAssign(Object* a, Object* out);
 bool objectCast(ObjectType variableType, Object* dest, Object* out);
 bool objectFunctionCall(char* name, Object* out);
-bool addFunctionParam(char* name);
+bool addFunctionParam(char* name, ObjectType returnType);
 
 Object processIdentifier(char* identifier);
 

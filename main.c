@@ -100,6 +100,23 @@ void dumpScope() {
     scopeLevel--;
 }
 
+void codeReturn(ObjectType returnType, char* funcName) {
+    if (!strcmp(funcName, "main")) {
+        codeRaw("return");
+        return;
+    }
+    // 根據 return type 來回傳
+    if (returnType == OBJECT_TYPE_INT) {
+        codeRaw("ireturn");
+    } else if (returnType == OBJECT_TYPE_FLOAT) {
+        codeRaw("freturn");
+    } else if (returnType == OBJECT_TYPE_STR) {
+        codeRaw("areturn");
+    } else if (returnType == OBJECT_TYPE_BOOL) {
+        codeRaw("ireturn");
+    }
+}
+
 void forBranchInit() {
     code("for_condition%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
 }
@@ -259,9 +276,11 @@ void createFunction(ObjectType variableType, char* funcName) {
     function->symbol->lineno = yylineno; // 暫時先用 lineno 來記錄 function 的行數
     // printf("func: %s\n", funcName);
     // printf("> Insert `%s` (addr: %ld) to scope level %d\n", funcName, function->symbol->addr, scopeLevel);
-    code(".method public static %s([Ljava/lang/String;)V", funcName, objectJavaTypeName[variableType]);
-    codeRaw(".limit stack 100");
-    codeRaw(".limit locals 100");
+    // code(".method public static %s([Ljava/lang/String;)%s", funcName, objectJavaTypeName[variableType]);
+    // return type
+    // code("%s", objectJavaTypeName[variableType]);
+    // codeRaw(".limit stack 100");
+    // codeRaw(".limit locals 100");
     
     // calculate index
     function->symbol->index = list_empty(scopeList[scopeLevel]) ? 0 : list_entry(scopeList[scopeLevel]->prev, Object, list)->symbol->index + 1;
@@ -583,12 +602,6 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             astore(dest);
         } else if (dest->type == OBJECT_TYPE_BOOL) {
             dest->value = val->value;
-            // 儲存 boolean 要用 1 來表示 true
-            if (val->value == 0) {
-                ldz(dest);
-            } else {
-                ldi(dest);
-            }
             istore(dest);
         }
     } else if (op == '+') {
@@ -887,7 +900,7 @@ bool objectFunctionCall(char* name, Object* out) {
                 strcat(func_sig, "F");
                 break;
             case OBJECT_TYPE_BOOL:
-                strcat(func_sig, "B");
+                strcat(func_sig, "Z");
                 break;
             case OBJECT_TYPE_STR:
                 strcat(func_sig, "Ljava/lang/String;");
@@ -911,7 +924,7 @@ bool objectFunctionCall(char* name, Object* out) {
             strcat(func_sig, "F");
             break;
         case OBJECT_TYPE_BOOL:
-            strcat(func_sig, "B");
+            strcat(func_sig, "Z");
             break;
         case OBJECT_TYPE_STR:
             strcat(func_sig, "Ljava/lang/String;");
@@ -930,24 +943,34 @@ bool objectFunctionCall(char* name, Object* out) {
 
     coutIndex = 0;
     out->type = obj->symbol->returnType;
+    code("invokestatic %s/%s%s", "Main", obj->symbol->name, obj->symbol->func_sig);
     return true;
 
 }
 
-bool addFunctionParam(char* name) {
+bool addFunctionParam(char* name, ObjectType returnType) {
     Object* obj = findVariable(name, OBJECT_TYPE_FUNCTION);
     if (obj == NULL) {
         printf("Variable `%s` not found\n", name);
         return false;
     }
     int paramCount = 0;
+    char* funParamList = (char*)malloc(1024);
     struct list_head *pos;
     Object *function;
     list_for_each(pos, scopeList[scopeLevel]) {
         Object *param = list_entry(pos, Object, list);
         obj->symbol->paramTypes[paramCount++] = param->type;
+        strcat(funParamList, objectJavaTypeName[param->type]);
     }
     obj->symbol->paramCount = paramCount;
+    if (strcmp(name, "main") == 0) {
+        code(".method public static %s([Ljava/lang/String;)V", name);
+    } else {
+        code(".method public static %s(%s)%s", name, funParamList, objectJavaTypeName[returnType]);
+    }
+    codeRaw(".limit stack 100");
+    codeRaw(".limit locals 100");
     return true;
 
 }

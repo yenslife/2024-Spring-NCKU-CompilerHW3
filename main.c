@@ -100,6 +100,31 @@ void dumpScope() {
     scopeLevel--;
 }
 
+void forBranchInit() {
+    code("for_condition%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
+
+void forCondition() {
+    code("ifeq for_false%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("goto end_for_increment%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("for_increment%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
+
+void forStmtEnd() { // 放在 for 區塊的最後一行
+    code("goto for_increment%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("for_false%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    ifIndex[scopeLevel]++;
+}
+
+void forIncrement() {
+    code("goto for_condition%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("end_for_increment%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
+
+void forIncrementLabel() {
+    code("goto for_condition%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("for_increment%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+}
 
 void whileBranchInit() {
     code("while_condition%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
@@ -697,6 +722,20 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
         codeRaw("ishl");
         istore(dest);
         // printf("SHL_ASSIGN\n");
+    } else if (op == 'I') {
+        // INC_ASSIGN
+        dest->value++;
+        codeRaw("ldc 1");
+        codeRaw("iadd");
+        istore(dest);
+        // printf("INC_ASSIGN\n");
+    } else if (op == 'D') {
+        // DEC_ASSIGN
+        dest->value--;
+        codeRaw("ldc 1");
+        codeRaw("isub");
+        istore(dest);
+        // printf("DEC_ASSIGN\n");
     }
     return true;
 }

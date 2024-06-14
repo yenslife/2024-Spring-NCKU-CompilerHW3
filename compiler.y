@@ -155,17 +155,17 @@ FunctionArgs
     | /* Empty function argument */
 
 FORStmt
-    : FOR {printf("FOR\n"); pushScope();} '(' LoopLogic ')' '{' StmtList '}' {dumpScope();}
+    : FOR {printf("FOR\n"); pushScope();} '(' LoopLogic ')' '{' StmtList '}' { forStmtEnd(); dumpScope(); }
 ;
 
 LoopLogic
-    : forInit forCondition forIncrement
+    : forInit {forBranchInit(); } forCondition {forCondition();} {forIncrementLabel();} forIncrement {forIncrement();}
 ;
 
 
 forInit
-    : VARIABLE_T IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>2, VAR_FLAG_DEFAULT, &$<object_val>4); }';'
-    | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); }';'
+    : VARIABLE_T IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>2, VAR_FLAG_DEFAULT, &$<object_val>4); objectExpAssign('=', $<s_var>2, &$<object_val>4, &$<object_val>4); }';'
+    | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); objectExpAssign('=', $<s_var>1, &$<object_val>3, &$<object_val>3); }';'
     | VARIABLE_T IDENT  ':' { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>2, VAR_FLAG_DEFAULT, NULL); } IDENT { processIdentifier($<s_var>5); } /* for range-based loop */
     | ';'
 ;
@@ -316,8 +316,8 @@ UnaryExpr : PostfixExpr
 
 PostfixExpr : PrimaryExpr { $$ = $1; }
             | '(' Expression ')' { $$ = $2; }
-            | PostfixExpr INC_ASSIGN { printf("INC_ASSIGN\n"); $$ = $1; }
-            | PostfixExpr DEC_ASSIGN { printf("DEC_ASSIGN\n"); $$ = $1; }
+            | PostfixExpr INC_ASSIGN { if (!objectExpAssign('I', $$.symbol->name, &$$, &$$)) YYABORT; } // $$ 的資料型態是 Object，所以不能直接印出來
+            | PostfixExpr DEC_ASSIGN { printf("DEC_ASSIGN\n"); }
             | FunctionCallStmt { $$ = $1;}
             ;
 
@@ -369,7 +369,7 @@ PrimaryExpr
         // printf("BOOL_LIT %s\n", (bool) $$.value ? "TRUE" : "FALSE");
         processExp($$);
     }
-    | IDENT { $$ = processIdentifier($<s_var>1); }
+    | IDENT { $$ = processIdentifier($<s_var>1); printf("IDENT %s\n", $<s_var>1); } 
     | ArrayElementExpr { $$ = $1; }
 ;
 %%

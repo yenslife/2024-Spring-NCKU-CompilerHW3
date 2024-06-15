@@ -137,6 +137,7 @@ void forStmtEnd() { // 放在 for 區塊的最後一行
     code("iteration%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
     IterationIndex[iterationScopeLevel]++;
     iterationScopeLevel--;
+    codeRaw("; end of for loop\n");
 }
 
 void forIncrement() {

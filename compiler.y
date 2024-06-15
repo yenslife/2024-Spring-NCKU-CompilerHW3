@@ -233,8 +233,8 @@ AssignVariableStmt
 ArrayMultiDimensions
     : IDENT '[' INT_LIT ']' {processArrayIdentifier($<s_var>1); multiarrayLdc($<i_var>3);} 
     | ArrayMultiDimensions '[' INT_LIT ']' { codeRaw("aaload");multiarrayLdc($<i_var>3);}
-    | IDENT '[' Expression ']' {processArrayIdentifier($<s_var>1); codeRaw("swap");}
-    | ArrayMultiDimensions '[' Expression ']' { codeRaw("aaload"); codeRaw("swap");}
+    | IDENT '[' Expression ']' {processArrayIdentifier($<s_var>1); codeRaw("swap"); codeRaw("aaload");}
+    | ArrayMultiDimensions '[' Expression ']' 
 ;
 
 CoutParmListStmt
@@ -263,6 +263,8 @@ ArrayElementExpr
 MultiArrayElementExpr
     : IDENT '[' INT_LIT ']' { $$ = processArrayIdentifier($<s_var>1); code("ldc %d", $<i_var>3); }
     | MultiArrayElementExpr '[' INT_LIT ']' { codeRaw("aaload"); code("ldc %d", $<i_var>3); }
+    | IDENT '[' Expression ']' { $$ = processArrayIdentifier($<s_var>1); codeRaw("swap"); codeRaw("aaload"); }
+    | MultiArrayElementExpr '[' Expression ']'
     
 ;
 

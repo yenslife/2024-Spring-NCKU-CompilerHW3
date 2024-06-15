@@ -142,7 +142,7 @@ Stmt
     | FORStmt
     | FunctionCallStmt
     | ArrayElementExpr VAL_ASSIGN Expression { if (!objectExpAssign('=', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }';'
-    | BREAK { printf("BREAK\n"); } ';' 
+    | BREAK { breakGoto(); } ';' 
 ;
 
 FunctionCallStmt

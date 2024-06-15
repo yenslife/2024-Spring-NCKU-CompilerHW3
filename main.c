@@ -69,6 +69,7 @@ int funcLineNo = 0;
 int variableAddress = 0;
 int conditionIndex = 0;
 int ifIndex[1024] = {0}; // index 為 scope level
+int iterationLabel = 0;
 bool emptyArray = false;
 int arraySize = 0;
 ObjectType variableIdentType;
@@ -119,42 +120,46 @@ void codeReturn(ObjectType returnType, char* funcName) {
 }
 
 void forBranchInit() {
-    code("for_condition%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    code("for_condition%d:", iterationLabel);
 }
 
 void forCondition() {
-    code("ifeq for_false%d_scope%d", ifIndex[scopeLevel], scopeLevel);
-    code("goto end_for_increment%d_scope%d", ifIndex[scopeLevel], scopeLevel);
-    code("for_increment%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    code("ifeq iteration%d", iterationLabel);
+    code("goto end_for_increment%d", iterationLabel);
+    code("for_increment%d:", iterationLabel);
 }
 
 void forStmtEnd() { // 放在 for 區塊的最後一行
-    code("goto for_increment%d_scope%d", ifIndex[scopeLevel], scopeLevel);
-    code("for_false%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
-    ifIndex[scopeLevel]++;
+    code("goto for_increment%d", iterationLabel);
+    code("iteration%d:", iterationLabel);
+    iterationLabel++;
 }
 
 void forIncrement() {
-    code("goto for_condition%d_scope%d", ifIndex[scopeLevel], scopeLevel);
-    code("end_for_increment%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    code("goto for_condition%d", iterationLabel);
+    code("end_for_increment%d:", iterationLabel);
 }
 
 void forIncrementLabel() {
-    code("goto for_condition%d_scope%d", ifIndex[scopeLevel], scopeLevel);
-    code("for_increment%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    code("goto for_condition%d", iterationLabel);
+    code("for_increment%d:", iterationLabel);
 }
 
 void whileBranchInit() {
-    code("while_condition%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
+    code("while_condition%d:", iterationLabel);
 }
 void whileBranch() {
-    code("ifeq while_false%d_scope%d", ifIndex[scopeLevel], scopeLevel);
+    code("ifeq iteration%d", iterationLabel);
 }
 
 void whileStmtEnd() { // 放在 while 區塊的最後一行
-    code("goto while_condition%d_scope%d", ifIndex[scopeLevel], scopeLevel);
-    code("while_false%d_scope%d:", ifIndex[scopeLevel], scopeLevel);
-    ifIndex[scopeLevel]++;
+    code("goto while_condition%d", iterationLabel);
+    code("iteration%d:", iterationLabel);
+    iterationLabel++;
+}
+
+void breakGoto() {
+    code("goto iteration%d ; break", iterationLabel);
 }
 
 void ifBranch_init() {
@@ -639,13 +644,13 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             float tmp = getFloat(dest) + getFloat(val);
             // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
             setFloat(dest, tmp);
-            fload(dest);
+            // fload(dest);
             codeRaw("fadd");
             fstore(dest);
         } else {
             dest->value = dest->value + val->value;
             // load and add
-            iload(dest);
+            // iload(dest);
             codeRaw("iadd");
             istore(dest);
         }
@@ -673,13 +678,13 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             float tmp = getFloat(dest) * getFloat(val);
             // printf("getFloat(dest): %f, getFloat(val): %f\n", getFloat(dest), getFloat(val));
             setFloat(dest, tmp);
-            fload(dest);
+            // fload(dest);
             codeRaw("fmul");
             fstore(dest);
         } else {
             dest->value = dest->value * val->value;
             // load and mul
-            iload(dest);
+            // iload(dest);
             codeRaw("imul");
             istore(dest);
         }

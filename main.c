@@ -70,6 +70,8 @@ int variableAddress = 0;
 int conditionIndex = 0;
 int ifIndex[1024] = {0}; // index 為 scope level
 int iterationLabel = 0;
+int iterationScopeLevel = 0;
+int IterationIndex[1024] = {0};
 bool emptyArray = false;
 int arraySize = 0;
 ObjectType variableIdentType;
@@ -120,46 +122,48 @@ void codeReturn(ObjectType returnType, char* funcName) {
 }
 
 void forBranchInit() {
-    code("for_condition%d:", iterationLabel);
+    iterationScopeLevel++;
+    code("for_condition%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 
 void forCondition() {
-    code("ifeq iteration%d", iterationLabel);
-    code("goto end_for_increment%d", iterationLabel);
-    code("for_increment%d:", iterationLabel);
+    code("ifeq iteration%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    code("goto end_for_increment%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    code("for_increment%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 
 void forStmtEnd() { // 放在 for 區塊的最後一行
-    code("goto for_increment%d", iterationLabel);
-    code("iteration%d:", iterationLabel);
-    iterationLabel++;
+    code("goto for_increment%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    code("iteration%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    IterationIndex[iterationScopeLevel]++;
+    iterationScopeLevel--;
 }
 
 void forIncrement() {
-    code("goto for_condition%d", iterationLabel);
-    code("end_for_increment%d:", iterationLabel);
+    code("goto for_condition%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    code("end_for_increment%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 
 void forIncrementLabel() {
-    code("goto for_condition%d", iterationLabel);
-    code("for_increment%d:", iterationLabel);
+    code("goto for_condition%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    code("for_increment%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 
 void whileBranchInit() {
-    code("while_condition%d:", iterationLabel);
+    code("while_condition%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 void whileBranch() {
-    code("ifeq iteration%d", iterationLabel);
+    code("ifeq iteration%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 
 void whileStmtEnd() { // 放在 while 區塊的最後一行
-    code("goto while_condition%d", iterationLabel);
-    code("iteration%d:", iterationLabel);
-    iterationLabel++;
+    code("goto while_condition%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    code("iteration%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
+    IterationIndex[iterationScopeLevel]++;
 }
 
 void breakGoto() {
-    code("goto iteration%d ; break", iterationLabel);
+    code("goto iteration%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 
 void ifBranch_init() {

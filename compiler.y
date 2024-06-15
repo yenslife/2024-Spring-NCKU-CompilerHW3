@@ -96,7 +96,7 @@ IdentList
 
 ArrayDimensions
     : ArrayDimensions '[' INT_LIT ']' {printf("INT_LIT %d\n", $<i_var>3);}
-    | '[' INT_LIT ']' {printf("INT_LIT %d\n", $<i_var>2);}
+    | '[' INT_LIT ']' {printf("INT_LIT %d\n", $<i_var>2); newarray($<i_var>2);}
 ;
 
 ArrayInitList
@@ -105,8 +105,8 @@ ArrayInitList
 ;
 
 ArrayElementList
-    : ArrayElementList ',' Expression { incrementArrayElement();}
-    | Expression { incrementArrayElement();}
+    : ArrayElementList ',' { arrDup(); } Expression { arrayElementStore();}
+    | { arrDup(); } Expression { arrayElementStore();}
     | /* Empty array element list */ 
 ;
 
@@ -222,7 +222,8 @@ AssignVariableStmt
     | IDENT {processIdentifier($<s_var>1);} BXO_ASSIGN Expression ';' { if (!objectExpAssign('^', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     | IDENT {processIdentifier($<s_var>1);} SHR_ASSIGN Expression ';' { if (!objectExpAssign('>', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     | IDENT {processIdentifier($<s_var>1);} SHL_ASSIGN Expression ';' { if (!objectExpAssign('<', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
-
+    // array assign
+    | IDENT '[' Expression ']' {processArrayIdentifier($<s_var>1); } VAL_ASSIGN Expression ';' { arrayAssign($<s_var>1, &$<object_val>3, &$<object_val>5); }
 ;
 
 CoutParmListStmt
@@ -245,13 +246,12 @@ Expression : '(' Expression ')' { $$ = $2; }
            ;
 
 ArrayElementExpr
-    : IDENT ArraySubscripts { $$ = processIdentifier($<s_var>1); }
+    : IDENT ArraySubscripts { $$ = processArrayIdentifier($<s_var>1); arrayElementLoad($<s_var>1); }
 ;
 
 ArraySubscripts
     : ArraySubscripts '[' Expression ']' 
     | '[' Expression ']' 
-    | /* Empty array subscript */
 
 ConditionalExpr : LogicalOrExpr { $$ = $1;}
                 | LogicalOrExpr '?' Expression ':' ConditionalExpr { $$ = $3; }

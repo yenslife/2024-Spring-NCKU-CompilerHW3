@@ -72,6 +72,7 @@ int ifIndex[1024] = {0}; // index 為 scope level
 bool emptyArray = false;
 int arraySize = 0;
 ObjectType variableIdentType;
+int arrayCounter = 0;
 
 // stack
 struct list_head *scopeList[1024];
@@ -254,10 +255,39 @@ void pushArrayVariable(ObjectType variableType, char* variableName, int variable
     // add to scope list
     list_add_tail(&variable->list, scopeList[scopeLevel]);
     arraySize = 0;
+
+    if (variableType == OBJECT_TYPE_INT) {
+        astore(variable);
+    } else if (variableType == OBJECT_TYPE_FLOAT) {
+        astore(variable);
+    } else if (variableType == OBJECT_TYPE_STR) {
+        astore(variable);
+    } else if (variableType == OBJECT_TYPE_BOOL) {
+        astore(variable);
+    }
 }
 
-void incrementArrayElement () {
+void newarray(int arraySize) {
+    code("ldc %d", arraySize);
+    code("newarray %s", objectTypeName[variableIdentType]);
+}
+
+void arrDup() {
+    codeRaw("dup");
+    code("ldc %d", arraySize);
+}
+
+void arrayElementStore () {
     arraySize++;
+    if (variableIdentType == OBJECT_TYPE_INT) {
+        codeRaw("iastore");
+    } else if (variableIdentType == OBJECT_TYPE_FLOAT) {
+        codeRaw("fastore");
+    } else if (variableIdentType == OBJECT_TYPE_STR) {
+        codeRaw("aastore");
+    } else if (variableIdentType == OBJECT_TYPE_BOOL) {
+        codeRaw("bastore");
+    }
 }
 
 void nonInitArray() {
@@ -973,6 +1003,82 @@ bool addFunctionParam(char* name, ObjectType returnType) {
     codeRaw(".limit locals 100");
     return true;
 
+}
+
+void arrayAssign(char* arrayName, Object* index, Object* val) {
+    Object* dest = findVariable(arrayName, OBJECT_TYPE_UNDEFINED);
+    if (dest == NULL) {
+        printf("Variable `%s` not found\n", arrayName);
+        return;
+    }
+    if (dest->type == OBJECT_TYPE_UNDEFINED) {
+        dest->type = OBJECT_TYPE_INT;
+    }
+    if (dest->type == OBJECT_TYPE_AUTO) {
+        dest->type = OBJECT_TYPE_INT;
+    }
+    if (dest->type == OBJECT_TYPE_INT) {
+        codeRaw("iastore");
+    } else if (dest->type == OBJECT_TYPE_FLOAT) {
+        codeRaw("fastore");
+    } else if (dest->type == OBJECT_TYPE_STR) {
+        codeRaw("aastore");
+    } else if (dest->type == OBJECT_TYPE_BOOL) {
+        codeRaw("bastore");
+    } else if (dest->type == OBJECT_TYPE_CHAR) {
+        codeRaw("castore");
+    }
+}
+
+void arrayElementLoad(char* arrayName) {
+    Object* dest = findVariable(arrayName, OBJECT_TYPE_UNDEFINED);
+    if (dest == NULL) {
+        printf("Variable `%s` not found\n", arrayName);
+        return;
+    }
+    if (dest->type == OBJECT_TYPE_UNDEFINED) {
+        dest->type = OBJECT_TYPE_INT;
+    }
+    if (dest->type == OBJECT_TYPE_AUTO) {
+        dest->type = OBJECT_TYPE_INT;
+    }
+    if (dest->type == OBJECT_TYPE_INT) {
+        codeRaw("iaload");
+    } else if (dest->type == OBJECT_TYPE_FLOAT) {
+        codeRaw("faload");
+    } else if (dest->type == OBJECT_TYPE_STR) {
+        codeRaw("aaload");
+    } else if (dest->type == OBJECT_TYPE_BOOL) {
+        codeRaw("baload");
+    } else if (dest->type == OBJECT_TYPE_CHAR) {
+        codeRaw("caload");
+    }
+}
+
+Object processArrayIdentifier(char* identifier) {
+    
+    Object* obj = findVariable(identifier, OBJECT_TYPE_UNDEFINED);
+    if (obj == NULL) {
+        printf("Variable `%s` not found\n", identifier);
+        obj = (Object*)malloc(sizeof(Object));
+        obj->symbol = (SymbolData*)malloc(sizeof(SymbolData));
+        obj->symbol->name = strdup(identifier); 
+    }
+    aload(obj);
+    codeRaw("swap");
+    // if (obj->type == OBJECT_TYPE_INT) {
+    //     codeRaw("iaload");
+    // } else if (obj->type == OBJECT_TYPE_FLOAT) {
+    //     codeRaw("faload");
+    // } else if (obj->type == OBJECT_TYPE_STR) {
+    //     codeRaw("aaload");
+    // } else if (obj->type == OBJECT_TYPE_BOOL) {
+    //     codeRaw("baload");
+    // } else if (obj->type == OBJECT_TYPE_CHAR) {
+    //     codeRaw("caload");
+    // }
+   
+    return *obj;
 }
 
 Object processIdentifier(char* identifier) {

@@ -30,7 +30,6 @@ void pushFunParm(ObjectType variableType, char* variableName, int parmFlag);
 void pushVariable(ObjectType variableType, char* variableName, int variableFlag, Object *variableValue);
 void pushVariableList(ObjectType varType);
 void pushArrayVariable(ObjectType variableType, char* variableName, int variableFlag);
-void incrementArrayElement();
 void nonInitArray();
 void createFunction(ObjectType variableType, char* funcName);
 void pushFunInParm(Object b);
@@ -52,6 +51,7 @@ bool objectFunctionCall(char* name, Object* out);
 bool addFunctionParam(char* name, ObjectType returnType);
 
 Object processIdentifier(char* identifier);
+Object processArrayIdentifier(char* identifier);
 
 void stdoutPrint();
 

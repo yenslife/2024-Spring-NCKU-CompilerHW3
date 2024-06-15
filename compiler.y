@@ -116,7 +116,7 @@ ArrayElementList
 FunctionDefStmt
     : 
      /* VARIABLE_T IDENT '(' FunctionParameterStmtList ')' { createFunction($<var_type>1, $<s_var>2); } '{' '}' { dumpScope(); } */
-    | VARIABLE_T IDENT '(' { createFunction($<var_type>1, $<s_var>2); } FunctionParameterStmtList ')' { addFunctionParam($<s_var>2, $<var_type>1); } '{' StmtList { codeReturn($<var_type>1, $<s_var>2); } '}'  { dumpScope(); codeRaw(".end method");}
+    | VARIABLE_T IDENT '(' { createFunction($<var_type>1, $<s_var>2); } FunctionParameterStmtList ')' { addFunctionParam($<s_var>2, $<var_type>1); } '{' StmtList '}'  { codeReturn(true); dumpScope(); codeRaw(".end method");}
 ;
 FunctionParameterStmtList 
     : FunctionParameterStmtList ',' FunctionParameterStmt
@@ -136,7 +136,7 @@ StmtList
 Stmt
     : ';'
     | COUT CoutParmListStmt ';' { stdoutPrint(); }
-    | RETURN Expression ';' { /*printf("RETURN\n");*/ }
+    | RETURN Expression ';' { codeReturn(false); }
     | DefineVariableStmt
     | AssignVariableStmt
     | IFStmt
@@ -144,7 +144,7 @@ Stmt
     | FORStmt
     | FunctionCallStmt
     | ArrayElementExpr VAL_ASSIGN Expression { if (!objectExpAssign('=', &$<object_val>1, &$<object_val>3, &$<object_val>1)) YYABORT; }';'
-    | BREAK { breakGoto(); } ';' 
+    | BREAK { breakGoto(); } ';'
 ;
 
 FunctionCallStmt
@@ -205,7 +205,7 @@ WHILEStmt
 IFStmt
     : IF '(' Expression ')' { ifBranch_init(); printf("IF\n"); pushScope();} '{' StmtList '}' {dumpScope();} { ifStmtEnd(); } ElseStmt { ifEnd(); }
     /* | IF '(' Expression ')' {printf("IF\n"); pushScope();} '{' StmtList '}' {dumpScope();} */
-    | IF '(' Expression ')' { ifBranch_init(); printf("IF\n"); } Stmt { ifEnd(); } 
+    | IF '(' Expression ')' { ifBranch_init(); printf("IF\n"); } Stmt { ifStmtEnd(); } ElseStmt { ifEnd(); }
 ;
 
 ElseStmt
@@ -232,7 +232,9 @@ AssignVariableStmt
 
 ArrayMultiDimensions
     : IDENT '[' INT_LIT ']' {processArrayIdentifier($<s_var>1); multiarrayLdc($<i_var>3);} 
-    | ArrayMultiDimensions '[' INT_LIT ']' { codeRaw("aaload");multiarrayLdc($<i_var>3);  }
+    | ArrayMultiDimensions '[' INT_LIT ']' { codeRaw("aaload");multiarrayLdc($<i_var>3);}
+    | IDENT '[' Expression ']' {processArrayIdentifier($<s_var>1); codeRaw("swap");}
+    | ArrayMultiDimensions '[' Expression ']' { codeRaw("aaload"); codeRaw("swap");}
 ;
 
 CoutParmListStmt

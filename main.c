@@ -77,6 +77,8 @@ int arraySize = 0;
 ObjectType variableIdentType;
 int arrayCounter = 0;
 int multiarrayCounter = 0;
+ObjectType functionReturnType;
+int functionParamCount = 0;
 
 // stack
 struct list_head *scopeList[1024];
@@ -105,21 +107,29 @@ void dumpScope() {
     scopeLevel--;
 }
 
-void codeReturn(ObjectType returnType, char* funcName) {
-    if (!strcmp(funcName, "main")) {
+void codeReturn(bool is_main) {
+    // if (!strcmp(funcName, "main")) {
+    //     codeRaw("return");
+    //     return;
+    // }
+    // 根據 return type 來回傳
+    if (is_main) {
         codeRaw("return");
         return;
-    }
-    // 根據 return type 來回傳
-    if (returnType == OBJECT_TYPE_INT) {
+    } 
+    if (functionReturnType == OBJECT_TYPE_INT) {
         codeRaw("ireturn");
-    } else if (returnType == OBJECT_TYPE_FLOAT) {
+    } else if (functionReturnType == OBJECT_TYPE_FLOAT) {
         codeRaw("freturn");
-    } else if (returnType == OBJECT_TYPE_STR) {
+    } else if (functionReturnType == OBJECT_TYPE_STR) {
         codeRaw("areturn");
-    } else if (returnType == OBJECT_TYPE_BOOL) {
+    } else if (functionReturnType == OBJECT_TYPE_BOOL) {
         codeRaw("ireturn");
+    } else if (functionReturnType == OBJECT_TYPE_VOID) {
+        codeRaw("return");
     }
+
+    functionParamCount = 0;
 }
 
 void forBranchInit() {
@@ -152,6 +162,7 @@ void forIncrementLabel() {
 }
 
 void whileBranchInit() {
+    iterationScopeLevel++;
     code("while_condition%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
 }
 void whileBranch() {
@@ -162,6 +173,7 @@ void whileStmtEnd() { // 放在 while 區塊的最後一行
     code("goto while_condition%d_iterationScopeLevel%d", IterationIndex[iterationScopeLevel], iterationScopeLevel);
     code("iteration%d_iterationScopeLevel%d:", IterationIndex[iterationScopeLevel], iterationScopeLevel);
     IterationIndex[iterationScopeLevel]++;
+    iterationScopeLevel--;
 }
 
 void breakGoto() {
@@ -185,13 +197,17 @@ void ifEnd() { // 放在整個 if 巢狀的最後一行
     ifIndex[scopeLevel]++;
 }
 
-Object* createVariable(ObjectType variableType, char* variableName, int variableFlag) {
+Object* createVariable(ObjectType variableType, char* variableName, int variableFlag, bool isParm) {
     // create variable object
     Object* variable = (Object*)malloc(sizeof(Object));
     variable->type = variableType;
     variable->symbol = (SymbolData*)malloc(sizeof(SymbolData));
     variable->symbol->name = strdup(variableName);
-    variable->symbol->addr = variableAddress++;
+    if (isParm) {
+        variable->symbol->addr = functionParamCount++;
+    } else {
+        variable->symbol->addr = variableAddress++;
+    }
     variable->symbol->func_sig = "-";
     variable->symbol->lineno = yylineno;
     return variable;
@@ -199,7 +215,7 @@ Object* createVariable(ObjectType variableType, char* variableName, int variable
 
 void pushFunParm(ObjectType variableType, char* variableName, int variableFlag) {
     // create variable object
-    Object* variable = createVariable(variableType, variableName, variableFlag);
+    Object* variable = createVariable(variableType, variableName, variableFlag, true);
     // printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, variable->symbol->addr, scopeLevel);
 
     // calculate index
@@ -217,7 +233,7 @@ void pushVariable(ObjectType variableType, char* variableName, int variableFlag,
     if (variableType == OBJECT_TYPE_AUTO) {
         variableType = variable->type;
     }
-    Object* mainVariable = createVariable(variableType, variableName, variableFlag);
+    Object* mainVariable = createVariable(variableType, variableName, variableFlag, false);
     // printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, mainVariable->symbol->addr, scopeLevel);
 
     // calculate index
@@ -254,7 +270,7 @@ void pushArrayVariable(ObjectType variableType, char* variableName, int variable
     if (variableType == OBJECT_TYPE_UNDEFINED) {
         variableType = variableIdentType;
     }
-    Object* variable = createVariable(variableType, variableName, variableFlag);
+    Object* variable = createVariable(variableType, variableName, variableFlag, false);
 
     if (arraySize != -1)
         printf("create array: %d\n", arraySize);
@@ -432,11 +448,14 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
         // printf("MUL\n");
     } else if (op == '/') {
         if (out->type == OBJECT_TYPE_FLOAT) {
+            if (val->value != 0.0)
+                out->value = dest->value / val->value;
             float tmp = getFloat(dest) / getFloat(val);
             setFloat(out, tmp);
             codeRaw("fdiv");
         } else {
-            out->value = dest->value / val->value;
+            if (val->value != 0)
+                out->value = dest->value / val->value;
             codeRaw("idiv");
         }
         // out->value = dest->value / val->value;
@@ -444,7 +463,9 @@ bool objectExpression(char op, Object* dest, Object* val, Object* out) {
         // printf("dest value: %f, val value: %f, out value: %f, calculate / value: %f\n", (float)dest->value, (float)val->value, (float)out->value, (float)dest->value / val->value);
         // printf("DIV\n");
     } else if (op == '%') {
-        out->value = dest->value % val->value;
+        if (val->value != 0) 
+            out->value = dest->value % val->value;
+        // out->value = 2;
         // printf("REM\n");
         codeRaw("irem");
     }
@@ -640,7 +661,7 @@ bool objectExpBoolean(char op, Object* a, Object* b, Object* out) {
 
 bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
     // printf("id: %s op: %c\n", identifier, op);
-    Object* dest = findVariable(identifier, OBJECT_TYPE_UNDEFINED);
+    Object* dest = findVariable(identifier, OBJECT_FIND_VARIABLE);
     if (val->type == OBJECT_TYPE_INT) {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             codeRaw("i2f");
@@ -915,10 +936,25 @@ Object* findVariable(char* variableName, ObjectType variableType) {
     Object* variable = NULL;
     struct list_head *pos;
     Object *obj;
+    if (variableType == OBJECT_FIND_VARIABLE) {
+        for (int i = scopeLevel; i >= 0; i--) {
+            list_for_each(pos, scopeList[i]) {
+                obj = list_entry(pos, Object, list);
+                if (strcmp(obj->symbol->name, variableName) == 0) {
+                    variable = obj;
+                    break;
+                }
+            }
+            if (variable) {
+                break;
+            }
+        }
+        return variable;
+    }
     for (int i = scopeLevel; i >= 0; i--) {
         list_for_each(pos, scopeList[i]) {
             obj = list_entry(pos, Object, list);
-            if (strcmp(obj->symbol->name, variableName) == 0) {
+            if (strcmp(obj->symbol->name, variableName) == 0 && obj->type == variableType) {
                 variable = obj;
                 break;
             }
@@ -927,7 +963,6 @@ Object* findVariable(char* variableName, ObjectType variableType) {
             break;
         }
     }
-    return variable;
 }
 
 void pushFunInParm(Object variable) {
@@ -1016,6 +1051,7 @@ bool objectFunctionCall(char* name, Object* out) {
 
     coutIndex = 0;
     out->type = obj->symbol->returnType;
+    // codeRaw(";test");
     code("invokestatic %s/%s%s", "Main", obj->symbol->name, obj->symbol->func_sig);
     return true;
 
@@ -1034,13 +1070,16 @@ bool addFunctionParam(char* name, ObjectType returnType) {
     list_for_each(pos, scopeList[scopeLevel]) {
         Object *param = list_entry(pos, Object, list);
         obj->symbol->paramTypes[paramCount++] = param->type;
+        code(";param %s", objectJavaTypeName[param->type]);
         strcat(funParamList, objectJavaTypeName[param->type]);
     }
     obj->symbol->paramCount = paramCount;
     if (strcmp(name, "main") == 0) {
         code(".method public static %s([Ljava/lang/String;)V", name);
+        functionReturnType = OBJECT_TYPE_VOID;
     } else {
         code(".method public static %s(%s)%s", name, funParamList, objectJavaTypeName[returnType]);
+        functionReturnType = returnType;
     }
     codeRaw(".limit stack 100");
     codeRaw(".limit locals 100");
@@ -1049,7 +1088,7 @@ bool addFunctionParam(char* name, ObjectType returnType) {
 }
 
 void arrayAssign(char* arrayName) {
-    Object* dest = findVariable(arrayName, OBJECT_TYPE_UNDEFINED);
+    Object* dest = findVariable(arrayName, OBJECT_FIND_VARIABLE);
     if (dest == NULL) {
         printf("Variable `%s` not found\n", arrayName);
         return;
@@ -1074,7 +1113,7 @@ void arrayAssign(char* arrayName) {
 }
 
 void arrayElementLoad(char* arrayName) {
-    Object* dest = findVariable(arrayName, OBJECT_TYPE_UNDEFINED);
+    Object* dest = findVariable(arrayName, OBJECT_FIND_VARIABLE);
     if (dest == NULL) {
         printf("Variable `%s` not found\n", arrayName);
         return;
@@ -1100,7 +1139,7 @@ void arrayElementLoad(char* arrayName) {
 
 Object processArrayIdentifier(char* identifier) {
     
-    Object* obj = findVariable(identifier, OBJECT_TYPE_UNDEFINED);
+    Object* obj = findVariable(identifier, OBJECT_FIND_VARIABLE);
     if (obj == NULL) {
         printf("Variable `%s` not found\n", identifier);
         obj = (Object*)malloc(sizeof(Object));
@@ -1124,7 +1163,7 @@ Object processArrayIdentifier(char* identifier) {
 }
 
 Object processIdentifier(char* identifier) {
-    Object* obj = findVariable(identifier, OBJECT_TYPE_UNDEFINED);
+    Object* obj = findVariable(identifier, OBJECT_FIND_VARIABLE);
     if (obj == NULL) {
         obj = (Object*)malloc(sizeof(Object));
         obj->symbol = (SymbolData*)malloc(sizeof(SymbolData));

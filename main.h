@@ -35,7 +35,7 @@ void createFunction(ObjectType variableType, char* funcName);
 void pushFunInParm(Object b);
 
 Object* findVariable(char* variableName, ObjectType variableType);
-Object* createVariable(ObjectType variableType, char* variableName, int variableFlag);
+Object* createVariable(ObjectType variableType, char* variableName, int variableFlag, bool isParam);
 bool objectExpression(char op, Object* a, Object* b, Object* out);
 bool objectExpBinary(char op, Object* a, Object* b, Object* out);
 bool objectExpBoolean(char op, Object* a, Object* b, Object* out);

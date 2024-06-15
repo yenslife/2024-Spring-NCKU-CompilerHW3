@@ -36,7 +36,8 @@ typedef enum _objectType {
     OBJECT_TYPE_DOUBLE,
     OBJECT_TYPE_STR,
     OBJECT_TYPE_FUNCTION,
-    OBJECT_TYPE_ENDL
+    OBJECT_TYPE_ENDL,
+    OBJECT_FIND_VARIABLE,
 } ObjectType;
 
 typedef struct _symbolData {

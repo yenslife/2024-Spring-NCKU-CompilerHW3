@@ -76,6 +76,7 @@ bool emptyArray = false;
 int arraySize = 0;
 ObjectType variableIdentType;
 int arrayCounter = 0;
+int multiarrayCounter = 0;
 
 // stack
 struct list_head *scopeList[1024];
@@ -282,6 +283,38 @@ void newarray(int arraySize) {
     code("newarray %s", objectTypeName[variableIdentType]);
 }
 
+void multianewarray() {
+    char* type;
+    char* declareString = (char*)malloc(sizeof(char) * 1000);
+    if (variableIdentType == OBJECT_TYPE_INT) {
+        type = "I";
+    } else if (variableIdentType == OBJECT_TYPE_FLOAT) {
+        type = "F";
+    } else if (variableIdentType == OBJECT_TYPE_STR) {
+        type = "Ljava/lang/String;";
+    } else if (variableIdentType == OBJECT_TYPE_BOOL) {
+        type = "Z";
+    }
+    for (int i = 0; i < multiarrayCounter; i++) {
+        strcat(declareString, "[");
+    }
+    strcat(declareString, type);
+    code("multianewarray %s %d", declareString, multiarrayCounter);
+    multiarrayCounter = 0;
+    free(declareString);
+}
+
+void multiarrayLdc(int arraySize) {
+    // codeRaw("aaload");
+    code("ldc %d", arraySize);
+    multiarrayCounter++;
+}
+
+void multiarrayLoad() {
+    codeRaw("aload");
+    codeRaw("swap");
+    // codeRaw("aaload");
+}
 void arrDup() {
     codeRaw("dup");
     code("ldc %d", arraySize);
@@ -1015,7 +1048,7 @@ bool addFunctionParam(char* name, ObjectType returnType) {
 
 }
 
-void arrayAssign(char* arrayName, Object* index, Object* val) {
+void arrayAssign(char* arrayName) {
     Object* dest = findVariable(arrayName, OBJECT_TYPE_UNDEFINED);
     if (dest == NULL) {
         printf("Variable `%s` not found\n", arrayName);
@@ -1075,7 +1108,6 @@ Object processArrayIdentifier(char* identifier) {
         obj->symbol->name = strdup(identifier); 
     }
     aload(obj);
-    codeRaw("swap");
     // if (obj->type == OBJECT_TYPE_INT) {
     //     codeRaw("iaload");
     // } else if (obj->type == OBJECT_TYPE_FLOAT) {

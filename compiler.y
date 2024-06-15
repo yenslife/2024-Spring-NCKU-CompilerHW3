@@ -47,6 +47,7 @@
 %type <ident_list> IdentList
 %type <object_val> FunctionCallStmt
 %type <object_val> ArrayElementExpr
+%type <object_val> MultiArrayElementExpr
 
 /* Token with return, which need to sepcify type */
 %token <var_type> VARIABLE_T
@@ -90,14 +91,15 @@ IdentList
     | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); objectExpAssign('=', $<s_var>1, &$<object_val>3, &$<object_val>3); }
     | IdentList ',' IDENT { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, NULL); }
     | IdentList ',' IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>3, VAR_FLAG_DEFAULT, &$<object_val>5); objectExpAssign('=', $<s_var>3, &$<object_val>5, &$<object_val>5); }
-    // array
-    | IDENT ArrayDimensions ArrayInitList {pushArrayVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_ARRAY);} 
+    // array 1 dimension
+    | IDENT '[' INT_LIT ']' { newarray($<i_var>3);} ArrayInitList {pushArrayVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_ARRAY);} 
+    // array multi-dimension
+    | IDENT ArrayMultiDimensionsDefine ArrayInitList {multianewarray();pushArrayVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_ARRAY);}
 ;
 
-ArrayDimensions
-    : ArrayDimensions '[' INT_LIT ']' {printf("INT_LIT %d\n", $<i_var>3);}
-    | '[' INT_LIT ']' {printf("INT_LIT %d\n", $<i_var>2); newarray($<i_var>2);}
-;
+ArrayMultiDimensionsDefine
+    : '[' INT_LIT ']' {multiarrayLdc($<i_var>2); } '[' INT_LIT ']' { multiarrayLdc($<i_var>6);}
+    | ArrayMultiDimensionsDefine '[' INT_LIT ']' { multiarrayLdc($<i_var>3);}
 
 ArrayInitList
     : VAL_ASSIGN '{' ArrayElementList '}' 
@@ -223,7 +225,14 @@ AssignVariableStmt
     | IDENT {processIdentifier($<s_var>1);} SHR_ASSIGN Expression ';' { if (!objectExpAssign('>', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     | IDENT {processIdentifier($<s_var>1);} SHL_ASSIGN Expression ';' { if (!objectExpAssign('<', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     // array assign
-    | IDENT '[' Expression ']' {processArrayIdentifier($<s_var>1); } VAL_ASSIGN Expression ';' { arrayAssign($<s_var>1, &$<object_val>3, &$<object_val>5); }
+    | IDENT '[' INT_LIT ']' {code("ldc %d", $<i_var>3); processArrayIdentifier($<s_var>1); codeRaw("swap");} VAL_ASSIGN Expression ';' { arrayAssign($<s_var>1); }
+    // multiarray assign
+    | ArrayMultiDimensions VAL_ASSIGN Expression  ';' { arrayAssign($<s_var>1); }
+;
+
+ArrayMultiDimensions
+    : IDENT '[' INT_LIT ']' {processArrayIdentifier($<s_var>1); multiarrayLdc($<i_var>3);} 
+    | ArrayMultiDimensions '[' INT_LIT ']' { codeRaw("aaload");multiarrayLdc($<i_var>3);  }
 ;
 
 CoutParmListStmt
@@ -246,12 +255,14 @@ Expression : '(' Expression ')' { $$ = $2; }
            ;
 
 ArrayElementExpr
-    : IDENT ArraySubscripts { $$ = processArrayIdentifier($<s_var>1); arrayElementLoad($<s_var>1); }
+    : IDENT '[' Expression ']' { $$ = processArrayIdentifier($<s_var>1); codeRaw("swap"); arrayElementLoad($<s_var>1); }
 ;
 
-ArraySubscripts
-    : ArraySubscripts '[' Expression ']' 
-    | '[' Expression ']' 
+MultiArrayElementExpr
+    : IDENT '[' INT_LIT ']' { $$ = processArrayIdentifier($<s_var>1); code("ldc %d", $<i_var>3); }
+    | MultiArrayElementExpr '[' INT_LIT ']' { codeRaw("aaload"); code("ldc %d", $<i_var>3); }
+    
+;
 
 ConditionalExpr : LogicalOrExpr { $$ = $1;}
                 | LogicalOrExpr '?' Expression ':' ConditionalExpr { $$ = $3; }
@@ -371,6 +382,7 @@ PrimaryExpr
     }
     | IDENT { $$ = processIdentifier($<s_var>1); printf("IDENT %s\n", $<s_var>1); } 
     | ArrayElementExpr { $$ = $1; }
+    | MultiArrayElementExpr { $$ = $1; arrayElementLoad($$.symbol->name); }
 ;
 %%
 /* C code section */

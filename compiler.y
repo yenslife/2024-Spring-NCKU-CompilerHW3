@@ -317,7 +317,7 @@ UnaryExpr : PostfixExpr
 PostfixExpr : PrimaryExpr { $$ = $1; }
             | '(' Expression ')' { $$ = $2; }
             | PostfixExpr INC_ASSIGN { if (!objectExpAssign('I', $$.symbol->name, &$$, &$$)) YYABORT; } // $$ 的資料型態是 Object，所以不能直接印出來
-            | PostfixExpr DEC_ASSIGN { printf("DEC_ASSIGN\n"); }
+            | PostfixExpr DEC_ASSIGN { if (!objectExpAssign('D', $$.symbol->name, &$$, &$$)) YYABORT; }
             | FunctionCallStmt { $$ = $1;}
             ;
 

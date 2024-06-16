@@ -83,7 +83,7 @@ GlobalStmt
 ;
 
 DefineVariableStmt
-    : VARIABLE_T { pushVariableList($1);} IdentList
+    : VARIABLE_T { pushVariableList($<var_type>1); } IdentList
 ;
 
 IdentList
@@ -166,9 +166,9 @@ LoopLogic
 
 
 forInit
-    : VARIABLE_T IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>2, VAR_FLAG_DEFAULT, &$<object_val>4); objectExpAssign('=', $<s_var>2, &$<object_val>4, &$<object_val>4); }';'
-    | IDENT VAL_ASSIGN Expression { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); objectExpAssign('=', $<s_var>1, &$<object_val>3, &$<object_val>3); }';'
-    | VARIABLE_T IDENT  ':' { pushVariable(OBJECT_TYPE_UNDEFINED, $<s_var>2, VAR_FLAG_DEFAULT, NULL); } IDENT { processIdentifier($<s_var>5); } /* for range-based loop */
+    : VARIABLE_T IDENT VAL_ASSIGN Expression { pushForLoopInitVariable($<var_type>1, $<s_var>2, VAR_FLAG_DEFAULT, &$<object_val>4); objectExpAssign('=', $<s_var>2, &$<object_val>4, &$<object_val>4); }';'
+    | IDENT VAL_ASSIGN Expression { pushForLoopInitVariable(OBJECT_TYPE_UNDEFINED, $<s_var>1, VAR_FLAG_DEFAULT, &$<object_val>3); objectExpAssign('=', $<s_var>1, &$<object_val>3, &$<object_val>3); }';'
+    | VARIABLE_T IDENT  ':' { pushForLoopInitVariable($<var_type>1, $<s_var>2, VAR_FLAG_DEFAULT, NULL); } IDENT { processIdentifier($<s_var>5); codeRaw("invokevirtual java/util/Scanner/nextInt()I"); }';'
     | ';'
 ;
 
@@ -213,7 +213,7 @@ ElseStmt
     | /* Empty else */
 
 AssignVariableStmt
-    : IDENT {processIdentifier($<s_var>1);} VAL_ASSIGN Expression ';' { if (!objectExpAssign('=', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
+    : IDENT {processIdentifier($<s_var>1);codeRaw("pop");}VAL_ASSIGN Expression ';' { if (!objectExpAssign('=', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     | IDENT {processIdentifier($<s_var>1);} ADD_ASSIGN Expression ';' { if (!objectExpAssign('+', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     | IDENT {processIdentifier($<s_var>1);} SUB_ASSIGN Expression ';' { if (!objectExpAssign('-', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
     | IDENT {processIdentifier($<s_var>1);} MUL_ASSIGN Expression ';' { if (!objectExpAssign('*', $<s_var>1, &$<object_val>4, &$<object_val>1)) YYABORT; }
@@ -246,7 +246,6 @@ CoutExpr
     : PrimaryExpr { $$ = $1; }
     | AdditiveExpr { $$ = $1; }
     | MultiplicativeExpr { $$ = $1; }
-    | UnaryExpr { $$ = $1; }
     | PostfixExpr { $$ = $1; }
     | FunctionCallStmt { $$ = $1; }
     ;

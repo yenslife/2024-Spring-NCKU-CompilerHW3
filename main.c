@@ -10,17 +10,17 @@
 
 #define debug printf("%s:%d: ############### debug\n", __FILE__, __LINE__)
 
-#define iload(var) code("iload %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define lload(var) code("lload %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define fload(var) code("fload %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define dload(var) code("dload %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define aload(var) code("aload %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
+#define iload(var) code("iload %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define lload(var) code("lload %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define fload(var) code("fload %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define dload(var) code("dload %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define aload(var) code("aload %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
 
-#define istore(var) code("istore %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define lstore(var) code("lstore %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define fstore(var) code("fstore %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define dstore(var) code("dstore %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
-#define astore(var) code("astore %" PRId64 " ; %s", (var)->symbol->addr, (var)->symbol->name)
+#define istore(var) code("istore %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define lstore(var) code("lstore %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define fstore(var) code("fstore %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define dstore(var) code("dstore %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
+#define astore(var) code("astore %" PRId64 " ; %s", (var)->symbol->index, (var)->symbol->name)
 
 #define ldz(val) code("ldc %d", getBool(val))
 #define ldb(val) code("ldc %d", getByte(val))
@@ -78,7 +78,7 @@ ObjectType variableIdentType;
 int arrayCounter = 0;
 int multiarrayCounter = 0;
 ObjectType functionReturnType;
-int functionParamCount = 0;
+int functionParamCount = 10;
 
 // stack
 struct list_head *scopeList[1024];
@@ -203,11 +203,11 @@ Object* createVariable(ObjectType variableType, char* variableName, int variable
     variable->type = variableType;
     variable->symbol = (SymbolData*)malloc(sizeof(SymbolData));
     variable->symbol->name = strdup(variableName);
-    if (isParm) {
-        variable->symbol->addr = functionParamCount++;
-    } else {
+    // if (isParm) {
+        // variable->symbol->addr = functionParamCount++;
+    // } else {
         variable->symbol->addr = variableAddress++;
-    }
+    // }
     variable->symbol->func_sig = "-";
     variable->symbol->lineno = yylineno;
     return variable;
@@ -229,6 +229,8 @@ void pushVariable(ObjectType variableType, char* variableName, int variableFlag,
     // create variable object
     if (variableType == OBJECT_TYPE_UNDEFINED) {
         variableType = variableIdentType;
+        code(";type: %s", objectTypeName[variableType]);
+        // codeRaw(";type: %s", objectTypeName[variableType]);
     }
     if (variableType == OBJECT_TYPE_AUTO) {
         variableType = variable->type;
@@ -238,6 +240,42 @@ void pushVariable(ObjectType variableType, char* variableName, int variableFlag,
 
     // calculate index
     mainVariable->symbol->index = list_empty(scopeList[scopeLevel]) ? 0 : list_entry(scopeList[scopeLevel]->prev, Object, list)->symbol->index + 1;
+
+    // add to scope list
+    list_add_tail(&mainVariable->list, scopeList[scopeLevel]);
+
+    if (variableType == OBJECT_TYPE_INT) {
+        codeRaw("ldc 0");
+        istore(mainVariable);
+    } else if (variableType == OBJECT_TYPE_FLOAT) {
+        codeRaw("ldc 0.0");
+        fstore(mainVariable);
+    } else if (variableType == OBJECT_TYPE_STR) {
+        codeRaw("ldc \"\"");
+        astore(mainVariable);
+    } else if (variableType == OBJECT_TYPE_BOOL) {
+        if (variable->value == 0) {
+            ldz(mainVariable);
+        } else {
+            ldi(mainVariable);
+        }
+        istore(mainVariable);
+    }
+}
+
+void pushForLoopInitVariable(ObjectType variableType, char* variableName, int variableFlag, Object *variable) {
+    // create variable object
+    if (variableType == OBJECT_TYPE_UNDEFINED) {
+        variableType = variableIdentType;
+    }
+    if (variableType == OBJECT_TYPE_AUTO) {
+        variableType = variable->type;
+    }
+    Object* mainVariable = createVariable(variableType, variableName, variableFlag, false);
+    // printf("> Insert `%s` (addr: %ld) to scope level %d\n", variableName, mainVariable->symbol->addr, scopeLevel);
+
+    // calculate index
+    mainVariable->symbol->index = functionParamCount++;
 
     // add to scope list
     list_add_tail(&mainVariable->list, scopeList[scopeLevel]);
@@ -741,7 +779,8 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
             codeRaw("fmul");
             fstore(dest);
         } else {
-            dest->value = dest->value * val->value;
+            // dest->value = dest->value * val->value;
+            code(";value of dest: %ld, value of val: %ld\n", dest->value, val->value);
             // load and mul
             // iload(dest);
             codeRaw("imul");
@@ -750,14 +789,14 @@ bool objectExpAssign(char op, char* identifier, Object* val, Object* out) {
         // printf("MUL_ASSIGN\n");
     } else if (op == '/') {
         if (dest->type == OBJECT_TYPE_FLOAT) {
-            float tmp = getFloat(dest) / getFloat(val);
-            setFloat(dest, tmp);
+            // float tmp = getFloat(dest) / getFloat(val);
+            // setFloat(dest, tmp);
             // fload(dest);
             // codeRaw("swap");
             codeRaw("fdiv");
             fstore(dest);
         } else {
-            dest->value = dest->value / val->value;
+            // dest->value = dest->value / val->value;
             // load and div
             // iload(dest);
             // codeRaw("swap");
@@ -923,12 +962,14 @@ bool objectCast(ObjectType variableType, Object* dest, Object* out) {
     if (variableType == OBJECT_TYPE_FLOAT) {
         if (dest->type == OBJECT_TYPE_INT) {
             codeRaw("i2f");
+            dest->type = OBJECT_TYPE_FLOAT;
         } 
     } else if (variableType == OBJECT_TYPE_INT) {
         if (dest->type == OBJECT_TYPE_FLOAT) {
             codeRaw("f2i");
+            dest->type = OBJECT_TYPE_INT;
         }
-    }
+    } 
     return true;
 }
 
